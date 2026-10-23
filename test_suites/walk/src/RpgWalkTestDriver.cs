@@ -7,6 +7,7 @@ using Cthangover.Core.Games;
 using Cthangover.Core.Scenes;
 using Cthangover.Core.Settings;
 using Cthangover.Core.Utils;
+using Cthangover.Mods.Interface.View;
 using Godot;
 
 namespace Cthangover.Mods.Rpg.Tests
@@ -287,7 +288,7 @@ namespace Cthangover.Mods.Rpg.Tests
             if (string.IsNullOrEmpty(shotsDir) || DisplayServer.GetName() == "headless")
                 return;
             DirAccess.MakeDirRecursiveAbsolute(shotsDir);
-            GetViewport().GetTexture().GetImage()?.SavePng(shotsDir.TrimEnd('/') + "/rpg_" + name + ".png");
+            ViewportCapture.SavePng(GetViewport(), shotsDir.TrimEnd('/') + "/rpg_" + name + ".png");
         }
 
         private void Finish()
