@@ -176,6 +176,9 @@ namespace Cthangover.Mods.Rpg.Tests
                     // core waits for the player, take the platform's victory path.
                     if (battle.ActiveBattleCore is not IBattleAutoPlayable auto || !auto.IsWaitingForPlayerInput)
                         return;
+                    // The shot waits for the fade-in too, otherwise it catches the blank transition.
+                    if (GodotSceneService.IsTransitioning)
+                        return;
                     Shot("battle");
                     battle.ShowWinground();
                     Next();
