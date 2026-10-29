@@ -1,10 +1,10 @@
-using Cthangover.Core.Events;
-using Cthangover.Core.Scenes;
-using Cthangover.Core.Utils;
-using Godot;
-
 namespace Cthangover.Mods.Rpg
 {
+    using Cthangover.Core.Events;
+    using Cthangover.Core.Scenes;
+    using Cthangover.Core.Utils;
+    using Godot;
+
     /// <summary>
     /// The place of the RPG world in the 2D shell. The rpg mod patches
     /// <c>base_scene.tscn</c> with this full-screen node right above the view box,
@@ -33,6 +33,9 @@ namespace Cthangover.Mods.Rpg
         /// <summary>The mounted map, or null.</summary>
         public RpgWorldView View { get; private set; }
 
+        /// <summary>Logical world owned by the shell, independently of its current presentation.</summary>
+        public RpgWorldSession Session { get; private set; }
+
         /// <summary>Subscribes to the scene lifecycle and condition changes.</summary>
         public override void _EnterTree()
         {
@@ -55,11 +58,32 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Updates the action hint from the same target selection as the world.</summary>
         public override void _Process(double delta)
         {
-            if (View == null || hud == null)
+            if (View == null)
                 return;
-            hud.Visible = !RpgInput.IsWalkBlocked(this);
+            var blocked = View.Presentation == null || RpgInput.IsWalkBlocked(this);
+            Session.Tick(delta, blocked, RpgInput.HeldDirection(), Input.IsPhysicalKeyPressed(Key.Shift));
+            View.Present(delta);
+            if (hud != null)
+                hud.Visible = !RpgInput.IsWalkBlocked(this);
             if (prompt != null)
-                prompt.Text = Tr(View.InteractionTarget() != null ? "rpg/ui/interact" : "rpg/ui/walk");
+                prompt.Text = Tr(View.Presentation == null ? "rpg/ui/no_renderer" : View.InteractionTarget() != null ? "rpg/ui/interact" : "rpg/ui/walk");
+        }
+
+        /// <summary>Shell input owns gameplay; a future SubViewport receives no duplicate walking/actions.</summary>
+        public override void _UnhandledInput(InputEvent @event)
+        {
+            if (View == null || !RpgInput.IsActionPress(@event))
+                return;
+            var dialogBox = RpgInput.FindDialogBox();
+            if (dialogBox?.IsRunning == true)
+            {
+                if (!dialogBox.IsWaitingAnswer)
+                    dialogBox.NextAction();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+            if (!RpgInput.IsWalkBlocked(this) && View.Interact())
+                GetViewport().SetInputAsHandled();
         }
 
         /// <summary>Unsubscribes; the view goes with the node.</summary>
@@ -68,6 +92,7 @@ namespace Cthangover.Mods.Rpg
             ModEventBus.Unsubscribe<SceneEnteredEvent>(OnSceneEntered);
             ModEventBus.Unsubscribe<SceneExitedEvent>(OnSceneExited);
             ModEventBus.Unsubscribe<ConditionStateChangedEvent>(OnConditionsChanged);
+            DetachSession();
             if (Current == this)
                 Current = null;
         }
@@ -114,7 +139,12 @@ namespace Cthangover.Mods.Rpg
             View = new RpgWorldView();
             AddChild(View);
             MoveChild(View, 1);
-            View.Build(map);
+            Session = new RpgWorldSession(map, RpgTilesetFactory.Instance.Get(map.Tileset),
+                RpgMapEvents.Of(map.ID), ScenarioCondition.Evaluate);
+            Session.PlayerStepFinished += OnPlayerStepFinished;
+            Session.TouchTriggered += OnTouchTriggered;
+            Session.EncounterTriggered += OnEncounterTriggered;
+            View.Build(Session);
             if (mapName != null)
                 mapName.Text = Tr(map.Name ?? map.ID);
 
@@ -135,6 +165,7 @@ namespace Cthangover.Mods.Rpg
         {
             if (View != null)
             {
+                DetachSession();
                 RemoveChild(View);
                 View.QueueFree();
                 View = null;
@@ -142,10 +173,46 @@ namespace Cthangover.Mods.Rpg
             Visible = false;
         }
 
+        /// <summary>Arrival placement updates the save independently of any presentation.</summary>
+        public void PlacePlayer(int x, int y, RpgDirection facing)
+        {
+            Session.Player.Place(new Vector2I(x, y), facing);
+            RpgState.Instance.Place(Session.Map.ID, x, y, facing);
+            View.Present(0);
+        }
+
+        /// <summary>Executes exactly the action selected by the logical session.</summary>
+        public bool Interact()
+        {
+            var target = Session.PrepareInteraction();
+            View.Present(0);
+            return target != null && RpgEventRunner.Run(target, Session.Map.ID);
+        }
+
         private void OnSceneEntered(SceneEnteredEvent evt) => Mount(evt.SceneName);
 
         private void OnSceneExited(SceneExitedEvent evt) => Unmount();
 
-        private void OnConditionsChanged(ConditionStateChangedEvent evt) => View?.RefreshEvents();
+        private void OnConditionsChanged(ConditionStateChangedEvent evt)
+        {
+            View?.RefreshEvents();
+        }
+
+        private void OnPlayerStepFinished(RpgActorState player)
+            => RpgState.Instance.Place(Session.Map.ID, player.Cell.X, player.Cell.Y, player.Facing);
+
+        private void OnTouchTriggered(RpgMapEvent mapEvent) => RpgEventRunner.Run(mapEvent, Session.Map.ID);
+
+        private void OnEncounterTriggered(string enemies) => RpgBattleService.Start(enemies, null);
+
+        private void DetachSession()
+        {
+            if (Session == null)
+                return;
+            Session.PlayerStepFinished -= OnPlayerStepFinished;
+            Session.TouchTriggered -= OnTouchTriggered;
+            Session.EncounterTriggered -= OnEncounterTriggered;
+            Session = null;
+        }
     }
 }

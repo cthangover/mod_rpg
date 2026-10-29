@@ -57,5 +57,18 @@
         }
       ]
     }
+  ],
+  "Kinds": [
+    {
+      "Kind": "rpg_tileset",
+      "Fields": [
+        {
+          "Key": "VisualGroups",
+          "Type": "json",
+          "Name": "rpg/schema/field/visual_groups",
+          "Description": "rpg/schema/field/visual_groups_desc"
+        }
+      ]
+    }
   ]
 }

@@ -6,8 +6,17 @@ namespace Cthangover.Mods.Rpg
     /// </summary>
     public class RpgTileInfo
     {
-        /// <summary>Row-major atlas index: <c>row * Columns + column</c>.</summary>
+        /// <summary>Logical map id; AtlasIndex or Surface can give it independent physical storage.</summary>
         public int Index { get; set; }
+
+        /// <summary>Physical cell in the object atlas; null preserves legacy row-major addressing.</summary>
+        public int? AtlasIndex { get; set; }
+
+        /// <summary>Square material patch in the separate surface atlas; null denotes an object.</summary>
+        public int? Surface { get; set; }
+
+        /// <summary>Blend this material with neighbouring surfaces; interiors can keep hard edges.</summary>
+        public bool Diffuse { get; set; } = true;
 
         /// <summary>
         /// The tile blocks walking when it lies on the back or the main layer
@@ -30,5 +39,12 @@ namespace Cthangover.Mods.Rpg
         /// tilesets group; set, the entry is an autotile and <see cref="Index"/> should lie outside the atlas.
         /// </summary>
         public string Autotile { get; set; }
+
+        /// <summary>
+        /// Thin upright object (fence, wall, railing) shown in the isometric view as a vertical plane along a map
+        /// axis instead of a camera-facing sprite: "x", "y", or "auto" (along neighbouring plane tiles of the same
+        /// layer, see <see cref="RpgTilePlanes"/>). Null keeps the sprite; the square view always shows the sprite.
+        /// </summary>
+        public string Plane { get; set; }
     }
 }

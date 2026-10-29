@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 namespace Cthangover.Mods.Rpg
@@ -16,7 +17,7 @@ namespace Cthangover.Mods.Rpg
     /// decide: both sides alike and the corner too — fill; both sides alike but not the
     /// corner — inner corner; only one side alike — the edge along the other; none — the
     /// outer corner. Cells past the map edge count as alike, so a terrain runs off the map
-    /// without a border. The world (<see cref="RpgAutotileLayer"/>) and the map editor draw
+    /// without a border. The world adapter and map editor draw
     /// through <see cref="Quarters"/> and <see cref="Draw"/>, so both show the same cells.
     /// </summary>
     public static class RpgAutotiles
@@ -27,15 +28,7 @@ namespace Cthangover.Mods.Rpg
         /// </summary>
         public static Vector2I[] Quarters(bool up, bool down, bool left, bool right,
             bool upLeft, bool upRight, bool downLeft, bool downRight)
-        {
-            return new[]
-            {
-                Quarter(up, left, upLeft, new Vector2I(2, 0), left ? 2 : 0, up ? 4 : 2),
-                Quarter(up, right, upRight, new Vector2I(3, 0), right ? 1 : 3, up ? 4 : 2),
-                Quarter(down, left, downLeft, new Vector2I(2, 1), left ? 2 : 0, down ? 3 : 5),
-                Quarter(down, right, downRight, new Vector2I(3, 1), right ? 1 : 3, down ? 3 : 5),
-            };
-        }
+            => Cthangover.Mods.TileRender.TileAutotile.Quarters(up, down, left, right, upLeft, upRight, downLeft, downRight);
 
         /// <summary>
         /// The quarters of the cell (<paramref name="x"/>, <paramref name="y"/>) of
@@ -71,12 +64,13 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Source rectangle of the block's preview tile (its top-left tile), for palettes.</summary>
         public static Rect2 PreviewRect(int tileSize) => new(0, 0, tileSize, tileSize);
 
-        private static Vector2I Quarter(bool sideA, bool sideB, bool corner, Vector2I inner, int column, int row)
-        {
-            if (sideA && sideB && !corner)
-                return inner;
-            return new Vector2I(column, row);
-        }
+        /// <summary>
+        /// Selects one A2 block from a sheet of adjacent 2×3 blocks by map position.
+        /// A single-block image keeps its original behaviour. Larger sheets let a
+        /// material span several cells without introducing seams or extra terrain ids.
+        /// </summary>
+        public static Rect2 VariantRect(Vector2I imageSize, int tileSize, Vector2I cell)
+            => Cthangover.Mods.TileRender.TileAutotile.VariantRect(imageSize, tileSize, cell);
 
         private static bool Alike(RpgMapGrid grid, RpgLayer layer, int x, int y, int index)
             => !grid.InBounds(x, y) || grid.GetTile(layer, x, y) == index;

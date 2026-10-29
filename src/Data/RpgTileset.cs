@@ -5,9 +5,10 @@ using Cthangover.Core.Factories;
 namespace Cthangover.Mods.Rpg
 {
     /// <summary>
-    /// A square-tile atlas: one image cut into <see cref="TileSize"/> cells,
-    /// <see cref="Columns"/> per row, addressed by a row-major index. Maps store
-    /// only these indices, so a pack can redraw its tiles without touching maps.
+    /// A square-tile object atlas, optionally accompanied by a strip of surface materials.
+    /// Maps store logical tile ids; AtlasIndex decouples those ids from compact object
+    /// storage, while Surface selects a patch for runtime material diffusion. Legacy
+    /// packs without these fields retain row-major image addressing.
     /// <para/>
     /// Files declare <c>"Kind": "rpg_tileset"</c> and live anywhere in a mod; the
     /// image is resolved in the <c>tilesets</c> file group (last mod wins), so a
@@ -25,6 +26,15 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Image path inside the <c>tilesets</c> group, extension optional.</summary>
         public string Image { get; set; }
 
+        /// <summary>Separate atlas of reusable surface patches, arranged in one horizontal strip.</summary>
+        public string SurfaceImage { get; set; }
+
+        /// <summary>Width and height of one surface patch in pixels.</summary>
+        public int SurfaceSize { get; set; } = 128;
+
+        /// <summary>Properties of a logical map tile, independent of physical atlas packing.</summary>
+        public RpgTileInfo TileOf(int index) => Tiles?.Find(tile => tile.Index == index);
+
         /// <summary>Edge of one square tile in image pixels.</summary>
         public int TileSize { get; set; } = 32;
 
@@ -33,6 +43,9 @@ namespace Cthangover.Mods.Rpg
 
         /// <summary>Per-cell properties; cells without an entry are walkable.</summary>
         public List<RpgTileInfo> Tiles { get; set; } = new();
+
+        /// <summary>Exact image groups for projection-independent whole objects; legacy sets may omit them.</summary>
+        public List<RpgVisualGroup> VisualGroups { get; set; } = new();
 
         /// <summary>The autotile entry with this index (<see cref="RpgTileInfo.Autotile"/> set), or null.</summary>
         public RpgTileInfo AutotileOf(int index)

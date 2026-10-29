@@ -12,7 +12,7 @@ namespace Cthangover.Mods.Rpg
     /// <c>items</c> group the inventory uses. Decoded textures are kept for the life of one world, which builds
     /// and owns an instance; the editor keeps its own.
     /// </summary>
-    public class RpgTextures
+    public class RpgTextures : System.IDisposable
     {
         /// <summary>File group of tileset images.</summary>
         public const string TilesetGroup = "tilesets";
@@ -23,10 +23,27 @@ namespace Cthangover.Mods.Rpg
         /// <summary>File group of item pictures (an item's <c>Sprite</c>).</summary>
         public const string IconGroup = "items";
 
-        private readonly Dictionary<string, Texture2D> cache = new();
+        private readonly Cthangover.Mods.TileRender.TileAssetCache cache = new();
 
         /// <summary>Tileset atlas image, or null (logged by the loader).</summary>
         public Texture2D Tileset(string path) => Load(TilesetGroup, path);
+
+        /// <summary>
+        /// An A2 block for this map cell. Multi-block sheets repeat by world position;
+        /// regions are cached so every water cell sharing a phase reuses one texture.
+        /// The editor and the world use this same lookup.
+        /// </summary>
+        public Texture2D Autotile(string path, int tileSize, int x, int y)
+        {
+            var sheet = Tileset(path);
+            if (sheet == null)
+                return null;
+            var region = RpgAutotiles.VariantRect(new Vector2I(sheet.GetWidth(), sheet.GetHeight()), tileSize, new Vector2I(x, y));
+            if (region.Position == Vector2.Zero && region.Size == sheet.GetSize())
+                return sheet;
+            var key = $"autotile/{path}/{tileSize}/{region.Position.X}/{region.Position.Y}";
+            return cache.Region(key, sheet, region);
+        }
 
         /// <summary>Charset image, or null.</summary>
         public Texture2D Charset(string path) => Load(CharsetGroup, path);
@@ -34,17 +51,7 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Item picture, or null.</summary>
         public Texture2D Icon(string path) => Load(IconGroup, path);
 
-        private Texture2D Load(string group, string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                return null;
-            var key = group + "/" + path;
-            if (!cache.TryGetValue(key, out var texture))
-            {
-                texture = TextureUtils.LoadFromModGroup(group, path);
-                cache[key] = texture;
-            }
-            return texture;
-        }
+        private Texture2D Load(string group, string path) => cache.Resolve(group, path);
+        public void Dispose() => cache.Dispose();
     }
 }

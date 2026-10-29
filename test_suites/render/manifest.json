@@ -1,0 +1,10 @@
+{
+  "name": "Tile renderer contracts and visual preview",
+  "sources": [
+    "src/*.cs"
+  ],
+  "depends": [
+    "rpg_demo_game>=1",
+    "rpg_editor>=1"
+  ]
+}

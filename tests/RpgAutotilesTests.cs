@@ -60,5 +60,20 @@ namespace Cthangover.Mods.Rpg.Tests
             ModAssert.True(RpgAutotiles.SourceRect(Vector2I.Zero, 48) == new Rect2(0, 0, 24, 24), "of any tile size");
             ModAssert.True(RpgAutotiles.PreviewRect(32) == new Rect2(0, 0, 32, 32), "the preview is the top-left tile");
         }
+
+        [ModTest("autotiles/material_variants_repeat_by_world_cell")]
+        static void MaterialVariants(ModTestContext ctx)
+        {
+            ModAssert.True(RpgAutotiles.VariantRect(new Vector2I(64, 96), 32, new Vector2I(9, 7)) == new Rect2(0, 0, 64, 96),
+                "legacy A2 textures still use the whole single block");
+            ModAssert.True(RpgAutotiles.VariantRect(new Vector2I(256, 384), 32, new Vector2I(2, 3)) == new Rect2(128, 288, 64, 96),
+                "a four-by-four material sheet selects its world phase");
+            ModAssert.True(RpgAutotiles.VariantRect(new Vector2I(256, 384), 32, new Vector2I(6, 7)) == new Rect2(128, 288, 64, 96),
+                "the material repeats across its period");
+            ModAssert.True(RpgAutotiles.VariantRect(new Vector2I(256, 384), 32, new Vector2I(-1, -2)) == new Rect2(192, 192, 64, 96),
+                "negative editor coordinates wrap to a valid block");
+            ModAssert.True(RpgAutotiles.VariantRect(new Vector2I(192, 288), 48, new Vector2I(1, 1)) == new Rect2(96, 144, 96, 144),
+                "other logical tile sizes keep the A2 proportions");
+        }
     }
 }
