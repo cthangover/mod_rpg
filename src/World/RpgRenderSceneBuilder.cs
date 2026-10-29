@@ -2,6 +2,7 @@ namespace Cthangover.Mods.Rpg
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Cthangover.Mods.TileRender;
     using Cthangover.Core.Utils;
     using Godot;
@@ -27,9 +28,8 @@ namespace Cthangover.Mods.Rpg
             LastBuiltSurfaceChunks = 0;
             SurfaceTextureBytes = 0;
             if (tileset == null) return scene;
-            var atlas = textures.Tileset(tileset.Image);
             var grouped = new HashSet<(int Layer, int X, int Y)>();
-            AddGroups(scene, grid, tileset, atlas, grouped);
+            AddGroups(scene, grid, tileset, grouped);
             var fragments = RpgGroupFragments.Of(tileset);
             foreach (var layer in new[] { RpgLayer.Back, RpgLayer.Main, RpgLayer.Front })
             {
@@ -62,7 +62,7 @@ namespace Cthangover.Mods.Rpg
                                 Bounds = new Rect2(x + q % 2 * 0.5f, y + q / 2 * 0.5f, 0.5f, 0.5f),
                                 Source = RpgAutotiles.SourceRect(quarters[q], tileset.TileSize) });
                     }
-                    else if (atlas != null)
+                    else if (AtlasOf(tileset, id) is { } atlas)
                     {
                         var planes = only == null && layer != RpgLayer.Back && info?.Plane != null;
                         var fragment = only == null && fragments.TryGetValue(id, out var part) ? part : default;
@@ -103,14 +103,14 @@ namespace Cthangover.Mods.Rpg
             }
         }
 
-        private void AddGroups(TileRenderScene scene, RpgMapGrid grid, RpgTileset tileset, Texture2D atlas,
+        private void AddGroups(TileRenderScene scene, RpgMapGrid grid, RpgTileset tileset,
             HashSet<(int Layer, int X, int Y)> grouped)
         {
-            if (atlas == null) return;
             foreach (var group in tileset.VisualGroups ?? new List<RpgVisualGroup>())
             {
                 var error = RpgVisualGroupValidator.Error(group);
                 if (error != null) throw new ArgumentException(error + ": " + group?.Id);
+                if (AtlasOf(tileset, group.Pattern[0]) is not { } atlas) continue;
                 if (group.IsoPlanes?.Count > 0 && !PackedRectangle(group, tileset))
                     throw new ArgumentException("Architectural source must remain a packed rectangle: " + group.Id);
                 for (var y = 0; y <= grid.Height - group.Height; y++)
@@ -121,15 +121,19 @@ namespace Cthangover.Mods.Rpg
                     foreach (var cell in matched) grouped.Add(cell);
                     if (group.IsoPlanes?.Count > 0)
                     {
-                        AddPlanes(scene, group, x, y, tileset, atlas);
+                        if (group.Pattern.Any(id => tileset.TileOf(id)?.Layer != null))
+                            AddLayeredPlanes(scene, group, x, y, tileset, atlas, matched);
+                        else
+                            AddPlanes(scene, group, x, y, tileset, atlas);
                         continue;
                     }
-                    if (PackedRectangle(group, tileset))
+                    if (PackedRectangle(group, tileset) && matched.All(c => c.Layer == matched[0].Layer))
                     {
                         scene.Visuals.Add(new TileVisual { Id = group.Id, Texture = atlas,
                             Source = new Rect2(TileRegion(tileset, group.Pattern[0]).Position, new Vector2(group.Width, group.Height) * tileset.TileSize),
                             Bounds = new Rect2(x, y, group.Width, group.Height), Anchor = new Vector2(x + group.AnchorX, y + group.AnchorY),
-                            Layer = 1, Upright = true, Only = "isometric" });
+                            Layer = group.Pattern.Any(id => tileset.TileOf(id)?.Layer != null) ? matched[0].Layer : 1,
+                            Upright = true, Only = "isometric" });
                         continue;
                     }
                     for (var dy = 0; dy < group.Height; dy++)
@@ -138,7 +142,7 @@ namespace Cthangover.Mods.Rpg
                         var id = group.Pattern[dy * group.Width + dx];
                         scene.Visuals.Add(new TileVisual { Id = group.Id, Texture = atlas, Source = TileRegion(tileset, id),
                             Bounds = new Rect2(x + dx, y + dy, 1, 1), Anchor = new Vector2(x + group.AnchorX, y + group.AnchorY),
-                            Layer = 1, Upright = true, Only = "isometric" });
+                            Layer = matched[dy * group.Width + dx].Layer, Upright = true, Only = "isometric" });
                     }
                 }
             }
@@ -172,6 +176,34 @@ namespace Cthangover.Mods.Rpg
             return result;
         }
 
+        private static Vector3 PlanePoint(Vector3[] corners, float u, float v)
+            => corners[0].Lerp(corners[1], u).Lerp(corners[3].Lerp(corners[2], u), v);
+
+        private static void AddLayeredPlanes(TileRenderScene scene, RpgVisualGroup group, int x, int y,
+            RpgTileset tileset, Texture2D atlas, List<(int Layer, int X, int Y)> matched)
+        {
+            var start = TileRegion(tileset, group.Pattern[0]).Position;
+            foreach (var plane in group.IsoPlanes)
+            {
+                var corners = plane.Points.Select(p => new Vector3(x + p[0], y + p[1], p[2])).ToArray();
+                var crop = plane.Crop;
+                for (var cy = 0; cy < crop[3]; cy++)
+                    for (var cx = 0; cx < crop[2]; cx++)
+                    {
+                        var u = cx / (float)crop[2];
+                        var v = cy / (float)crop[3];
+                        var u1 = (cx + 1) / (float)crop[2];
+                        var v1 = (cy + 1) / (float)crop[3];
+                        scene.Visuals.Add(new TileVisual { Id = group.Id, Texture = atlas, Only = "isometric",
+                            Layer = matched[(crop[1] + cy) * group.Width + crop[0] + cx].Layer,
+                            Bounds = new Rect2(x, y, group.Width, group.Height),
+                            Anchor = new Vector2(x + group.AnchorX, y + group.AnchorY),
+                            WorldQuad = new[] { PlanePoint(corners, u, v), PlanePoint(corners, u1, v), PlanePoint(corners, u1, v1), PlanePoint(corners, u, v1) },
+                            Source = new Rect2(start + new Vector2(crop[0] + cx, crop[1] + cy) * tileset.TileSize, Vector2.One * tileset.TileSize) });
+                    }
+            }
+        }
+
         private static void AddPlanes(TileRenderScene scene, RpgVisualGroup group, int x, int y, RpgTileset tileset, Texture2D atlas)
         {
             var start = TileRegion(tileset, group.Pattern[0]).Position;
@@ -187,6 +219,9 @@ namespace Cthangover.Mods.Rpg
                         new Vector2(plane.Crop[2], plane.Crop[3]) * tileset.TileSize) });
             }
         }
+
+        /// <summary>Atlas image a tile is cut from: its own tileset's, or the one it was borrowed from.</summary>
+        private Texture2D AtlasOf(RpgTileset tileset, int id) => textures.Tileset(tileset.TileOf(id)?.SourceImage ?? tileset.Image);
 
         public static Rect2 TileRegion(RpgTileset tileset, int id)
             => new(RpgTileSetBuilder.AtlasCoords(tileset, id) * tileset.TileSize, Vector2.One * tileset.TileSize);
@@ -210,7 +245,7 @@ namespace Cthangover.Mods.Rpg
                     Anchor = new Vector2(0.5f, 1), Source = new Rect2(Vector2.Zero, texture.GetSize()) };
             }
             if (page?.Tile >= 0 && tileset != null)
-                return new TileVisual { Texture = textures.Tileset(tileset.Image), Source = TileRegion(tileset, page.Tile),
+                return new TileVisual { Texture = AtlasOf(tileset, page.Tile), Source = TileRegion(tileset, page.Tile),
                     Bounds = new Rect2(0, 0, 1, 1), Anchor = new Vector2(0.5f, 1) };
             if (!string.IsNullOrEmpty(page?.Icon))
             {

@@ -34,6 +34,12 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Id of the <see cref="RpgTileset"/> the indices refer to.</summary>
         public string Tileset { get; set; }
 
+        /// <summary>
+        /// Further tilesets whose objects the map uses; the k-th one's ids are <c>k * 100000 + id</c>
+        /// (<see cref="RpgTilesetComposer"/>). Only appended to, since the position is part of the ids.
+        /// </summary>
+        public System.Collections.Generic.List<string> Tilesets { get; set; }
+
         /// <summary>Columns.</summary>
         public int Width { get; set; }
 

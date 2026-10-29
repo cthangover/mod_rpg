@@ -16,6 +16,17 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Shared instance.</summary>
         public static RpgTilesetFactory Instance => instance.Value;
 
+        /// <summary>The map's tileset with the objects of its extra tilesets (<see cref="RpgTilesetComposer"/>).</summary>
+        public RpgTileset ForMap(RpgMap map)
+        {
+            if (map == null)
+                return null;
+            var extras = new System.Collections.Generic.List<RpgTileset>();
+            foreach (var id in map.Tilesets ?? new System.Collections.Generic.List<string>())
+                extras.Add(Get(id));
+            return RpgTilesetComposer.Compose(Get(map.Tileset), extras);
+        }
+
         /// <summary>Replaces the cached definition of <paramref name="tileset"/>'s id.</summary>
         public void Publish(RpgTileset tileset)
         {

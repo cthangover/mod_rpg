@@ -139,7 +139,7 @@ namespace Cthangover.Mods.Rpg
             View = new RpgWorldView();
             AddChild(View);
             MoveChild(View, 1);
-            Session = new RpgWorldSession(map, RpgTilesetFactory.Instance.Get(map.Tileset),
+            Session = new RpgWorldSession(map, RpgTilesetFactory.Instance.ForMap(map),
                 RpgMapEvents.Of(map.ID), ScenarioCondition.Evaluate);
             Session.PlayerStepFinished += OnPlayerStepFinished;
             Session.TouchTriggered += OnTouchTriggered;

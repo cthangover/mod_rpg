@@ -31,6 +31,10 @@ namespace Cthangover.Mods.Rpg
         /// </summary>
         public string Tag { get; set; }
 
+        /// <summary>Optional authoring layer used when an object is stamped; null follows the map editor's active layer.</summary>
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+        public RpgLayer? Layer { get; set; }
+
         /// <summary>Light the tile gives off wherever it lies on a map (a lamp, a lit window); null = none.</summary>
         public RpgLight Light { get; set; }
 
@@ -46,5 +50,13 @@ namespace Cthangover.Mods.Rpg
         /// layer, see <see cref="RpgTilePlanes"/>). Null keeps the sprite; the square view always shows the sprite.
         /// </summary>
         public string Plane { get; set; }
+
+        /// <summary>Atlas of a tile borrowed from another tileset (<see cref="RpgTilesetComposer"/>); null = the tileset's own image.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string SourceImage { get; set; }
+
+        /// <summary>Columns of <see cref="SourceImage"/>; 0 = the tileset's own columns.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int SourceColumns { get; set; }
     }
 }

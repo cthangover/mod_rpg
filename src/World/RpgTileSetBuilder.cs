@@ -13,8 +13,9 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Atlas coordinate of a row-major index.</summary>
         public static Vector2I AtlasCoords(RpgTileset tileset, int index)
         {
-            index = tileset.TileOf(index)?.AtlasIndex ?? index;
-            var columns = System.Math.Max(1, tileset.Columns);
+            var info = tileset.TileOf(index);
+            index = info?.AtlasIndex ?? index;
+            var columns = System.Math.Max(1, info?.SourceColumns > 0 ? info.SourceColumns : tileset.Columns);
             return new Vector2I(index % columns, index / columns);
         }
 

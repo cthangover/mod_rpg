@@ -140,7 +140,7 @@ namespace Cthangover.Mods.Rpg.Tests
         private void Build(string mapId)
         {
             var map = RpgMapFactory.Instance.Get(mapId);
-            var tileset = RpgTilesetFactory.Instance.Get(map.Tileset);
+            var tileset = RpgTilesetFactory.Instance.ForMap(map);
             builder ??= new RpgRenderSceneBuilder(textures);
             scene = builder.Build(map, RpgMapGrid.Parse(map), tileset);
             scene.Zoom = mapId == "rpg_elder_house" ? 1.1f : 0.55f;
@@ -189,7 +189,7 @@ namespace Cthangover.Mods.Rpg.Tests
             GameLogger.Log("TEST", $"[TEST_RESULT] name=tile_render passed={passed} failed={(error == null ? 0 : 1)}");
             builder?.Dispose();
             textures.Dispose();
-            GetTree().Quit(error == null ? 0 : 1);
+            Cthangover.Core.Bootstrap.ApplicationExit.Quit(GetTree(), error == null ? 0 : 1);
             SetProcess(false);
         }
     }
