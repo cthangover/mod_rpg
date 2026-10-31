@@ -1,0 +1,12 @@
+{
+  "Kind": "rpg_object",
+  "Items": [
+    {
+      "Id": "rpg_plain_test/trigger",
+      "Form": "sprite",
+      "Category": "marker",
+      "Solid": false,
+      "Parts": []
+    }
+  ]
+}

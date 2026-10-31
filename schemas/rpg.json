@@ -1,26 +1,6 @@
 {
   "Actions": [
     {
-      "Id": "rpg.battle",
-      "Name": "rpg/schema/builtin/rpg_battle",
-      "Description": "rpg/schema/builtin/rpg_battle_desc",
-      "Category": "battle",
-      "Params": [
-        {
-          "Key": "enemies",
-          "Type": "ref_list",
-          "Kind": "character",
-          "Required": true,
-          "Name": "rpg/schema/field/enemies"
-        },
-        {
-          "Key": "win_flag",
-          "Type": "flag",
-          "Name": "rpg/schema/field/win_flag"
-        }
-      ]
-    },
-    {
       "Id": "rpg.teleport",
       "Name": "rpg/schema/builtin/rpg_teleport",
       "Description": "rpg/schema/builtin/rpg_teleport_desc",
@@ -60,13 +40,94 @@
   ],
   "Kinds": [
     {
-      "Kind": "rpg_tileset",
+      "Kind": "rpg_map",
+      "Name": "rpg/schema/kind/map",
+      "Folder": "maps",
+      "NewId": "{mod}/new_map",
+      "Order": 42,
       "Fields": [
         {
-          "Key": "VisualGroups",
+          "Key": "Name",
+          "Type": "locale",
+          "KeyPattern": "{mod}/map/{id}"
+        },
+        {
+          "Key": "Width",
+          "Type": "int",
+          "Required": true
+        },
+        {
+          "Key": "Height",
+          "Type": "int",
+          "Required": true
+        },
+        {
+          "Key": "TileSize",
+          "Type": "int",
+          "Default": "32"
+        },
+        {
+          "Key": "PatchSize",
+          "Type": "int",
+          "Default": "128"
+        },
+        {
+          "Key": "Zoom",
+          "Type": "number",
+          "Default": "2"
+        },
+        {
+          "Key": "Legend",
+          "Type": "json"
+        },
+        {
+          "Key": "Ground",
+          "Type": "json"
+        },
+        {
+          "Key": "Structure",
+          "Type": "json"
+        },
+        {
+          "Key": "Collision",
+          "Type": "json"
+        },
+        {
+          "Key": "Strokes",
+          "Type": "json"
+        },
+        {
+          "Key": "Spawn",
+          "Type": "json"
+        },
+        {
+          "Key": "Variant",
+          "Type": "text"
+        },
+        {
+          "Key": "Atmosphere",
+          "Type": "ref",
+          "Kind": "atmosphere",
+          "Name": "rpg/schema/field/atmosphere"
+        },
+        {
+          "Key": "Ambient",
+          "Type": "text"
+        },
+        {
+          "Key": "Effects",
           "Type": "json",
-          "Name": "rpg/schema/field/visual_groups",
-          "Description": "rpg/schema/field/visual_groups_desc"
+          "Name": "rpg/schema/field/effects"
+        },
+        {
+          "Key": "LightMode",
+          "Type": "choice",
+          "Name": "rpg/schema/field/light_mode",
+          "Options": [
+            "cycle",
+            "day",
+            "night"
+          ]
         }
       ]
     }

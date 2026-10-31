@@ -39,6 +39,31 @@ namespace Cthangover.Mods.Rpg
                 && (key.PhysicalKeycode == Key.E || key.PhysicalKeycode == Key.F);
         }
 
+        // The frame memo of IsWalkBlockedThisFrame: the process frame it was taken in, and the node.
+        private static ulong memoFrame = ulong.MaxValue;
+        private static ulong memoNode;
+        private static bool memoBlocked;
+
+        /// <summary>
+        /// <see cref="IsWalkBlocked"/> evaluated at most once per process frame: the per-frame path
+        /// (the host's <c>_Process</c>, the frame presentation) asks here, so the panel and window
+        /// walk runs once per frame however many presentation calls follow. Input events never use
+        /// it (they run between frames and may change the answer), they call <see cref="IsWalkBlocked"/>.
+        /// </summary>
+        public static bool IsWalkBlockedThisFrame(Node node)
+        {
+            if (node == null)
+                return true;
+            var frame = Godot.Engine.GetProcessFrames();
+            var id = node.GetInstanceId();
+            if (frame == memoFrame && id == memoNode)
+                return memoBlocked;
+            memoBlocked = IsWalkBlocked(node);
+            memoFrame = frame;
+            memoNode = id;
+            return memoBlocked;
+        }
+
         /// <summary>The shell's dialog box, or null outside the shell.</summary>
         public static DialogBox FindDialogBox() => SceneContextNode.FindNode<DialogBox>("DialogBox");
 

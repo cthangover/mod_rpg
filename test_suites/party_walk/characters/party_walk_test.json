@@ -1,0 +1,16 @@
+{
+  "Kind": "character",
+  "Items": [
+    {
+      "Id": "rpg_party_test_nocharset",
+      "Level": 1,
+      "Point": 1,
+      "Health": 10,
+      "Defence": 0,
+      "Attack": 2,
+      "Actions": [
+        "physics/attack"
+      ]
+    }
+  ]
+}

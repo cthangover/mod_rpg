@@ -1,8 +1,13 @@
 namespace Cthangover.Mods.Rpg
 {
+    using System;
+    using System.Collections.Generic;
     using Cthangover.Core.Events;
+    using Cthangover.Core.Mods.Resolvers;
     using Cthangover.Core.Scenes;
     using Cthangover.Core.Utils;
+    using Cthangover.Mods.Rpg.Model;
+    using Cthangover.Mods.Rpg.Play;
     using Godot;
 
     /// <summary>
@@ -26,6 +31,7 @@ namespace Cthangover.Mods.Rpg
         private Control hud;
         private Label mapName;
         private Label prompt;
+        private string promptKey;
 
         /// <summary>The host in the running shell, or null.</summary>
         public static RpgWorldHost Current { get; private set; }
@@ -43,6 +49,7 @@ namespace Cthangover.Mods.Rpg
             ModEventBus.Subscribe<SceneEnteredEvent>(OnSceneEntered);
             ModEventBus.Subscribe<SceneExitedEvent>(OnSceneExited);
             ModEventBus.Subscribe<ConditionStateChangedEvent>(OnConditionsChanged);
+            ModEventBus.Subscribe<DialogEndedEvent>(OnDialogEnded);
         }
 
         /// <summary>Finds the backdrop and starts hidden until a map scene is entered.</summary>
@@ -60,13 +67,25 @@ namespace Cthangover.Mods.Rpg
         {
             if (View == null)
                 return;
-            var blocked = View.Presentation == null || RpgInput.IsWalkBlocked(this);
-            Session.Tick(delta, blocked, RpgInput.HeldDirection(), Input.IsPhysicalKeyPressed(Key.Shift));
-            View.Present(delta);
-            if (hud != null)
-                hud.Visible = !RpgInput.IsWalkBlocked(this);
-            if (prompt != null)
-                prompt.Text = Tr(View.Presentation == null ? "rpg/ui/no_renderer" : View.InteractionTarget() != null ? "rpg/ui/interact" : "rpg/ui/walk");
+            // One UI check per frame (plan section 4): it walks panels and windows.
+            var walkBlocked = RpgInput.IsWalkBlockedThisFrame(this);
+            Session.Tick(delta, View.Presentation == null || walkBlocked, RpgInput.HeldDirection(), Input.IsPhysicalKeyPressed(Key.Shift));
+            View.Present(delta, walkBlocked);
+            if (hud != null && hud.Visible == walkBlocked)
+                hud.Visible = !walkBlocked;
+            var key = View.Presentation == null ? "rpg/ui/no_renderer" : View.InteractionTarget() != null ? "rpg/ui/interact" : "rpg/ui/walk";
+            if (prompt != null && key != promptKey)
+            {
+                promptKey = key;
+                prompt.Text = Tr(key);
+            }
+        }
+
+        /// <summary>A language change re-translates the cached prompt on the next frame.</summary>
+        public override void _Notification(int what)
+        {
+            if (what == NotificationTranslationChanged)
+                promptKey = null;
         }
 
         /// <summary>Shell input owns gameplay; a future SubViewport receives no duplicate walking/actions.</summary>
@@ -89,9 +108,11 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Unsubscribes; the view goes with the node.</summary>
         public override void _ExitTree()
         {
+            if (View != null) Cthangover.Mods.Time.UiLightController.Instance?.SetLocationMode("cycle");
             ModEventBus.Unsubscribe<SceneEnteredEvent>(OnSceneEntered);
             ModEventBus.Unsubscribe<SceneExitedEvent>(OnSceneExited);
             ModEventBus.Unsubscribe<ConditionStateChangedEvent>(OnConditionsChanged);
+            ModEventBus.Unsubscribe<DialogEndedEvent>(OnDialogEnded);
             DetachSession();
             if (Current == this)
                 Current = null;
@@ -132,18 +153,18 @@ namespace Cthangover.Mods.Rpg
         public void Mount(string sceneName)
         {
             Unmount();
-            var map = RpgMapFactory.Instance.Get(sceneName);
+            var map = MapOf(sceneName);
             if (map == null)
                 return;
 
             View = new RpgWorldView();
             AddChild(View);
             MoveChild(View, 1);
-            Session = new RpgWorldSession(map, RpgTilesetFactory.Instance.ForMap(map),
-                RpgMapEvents.Of(map.ID), ScenarioCondition.Evaluate);
+            Session = CreateSession(map);
             Session.PlayerStepFinished += OnPlayerStepFinished;
-            Session.TouchTriggered += OnTouchTriggered;
-            Session.EncounterTriggered += OnEncounterTriggered;
+            Session.StepTriggered += OnStepTriggered;
+            Session.PlainStepFinished += OnPlainStepFinished;
+            Cthangover.Mods.Time.UiLightController.Instance?.SetLocationMode(map.LightMode);
             View.Build(Session);
             if (mapName != null)
                 mapName.Text = Tr(map.Name ?? map.ID);
@@ -163,6 +184,7 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Frees the mounted map and hides the host.</summary>
         public void Unmount()
         {
+            if (View != null) Cthangover.Mods.Time.UiLightController.Instance?.SetLocationMode("cycle");
             if (View != null)
             {
                 DetachSession();
@@ -176,7 +198,7 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Arrival placement updates the save independently of any presentation.</summary>
         public void PlacePlayer(int x, int y, RpgDirection facing)
         {
-            Session.Player.Place(new Vector2I(x, y), facing);
+            Session.Relocate(new Vector2I(x, y), facing);
             RpgState.Instance.Place(Session.Map.ID, x, y, facing);
             View.Present(0);
         }
@@ -186,8 +208,40 @@ namespace Cthangover.Mods.Rpg
         {
             var target = Session.PrepareInteraction();
             View.Present(0);
-            return target != null && RpgEventRunner.Run(target, Session.Map.ID);
+            return target != null && RpgInteraction.Run(target, Session.Map.ID, RpgInput.FindDialogBox());
         }
+
+        /// <summary>The map entity <paramref name="id"/> (a logical scene name), or null.</summary>
+        public static RpgMap MapOf(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return null;
+            var maps = Entities.Collect<RpgMap>();
+            if (maps.TryGetValue(id, out var map))
+                return map;
+            foreach (var pair in maps)
+            {
+                if (string.Equals(pair.Key, id, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+            return null;
+        }
+
+        /// <summary>The placements of every mod on map <paramref name="mapId"/> (by the id prefix), in resolver order.</summary>
+        public static List<RpgPlacement> PlacementsOf(string mapId)
+        {
+            var result = new List<RpgPlacement>();
+            foreach (var placement in Entities.Collect<RpgPlacement>().Values)
+            {
+                if (string.Equals(placement.MapId, mapId, StringComparison.OrdinalIgnoreCase))
+                    result.Add(placement);
+            }
+            return result;
+        }
+
+        /// <summary>A world of <paramref name="map"/> on the loaded objects and placements, states evaluated by the story flags.</summary>
+        public static RpgWorldSession CreateSession(RpgMap map)
+            => new(map, new RpgObjectLookup().Find, PlacementsOf(map.ID), ScenarioCondition.Evaluate);
 
         private void OnSceneEntered(SceneEnteredEvent evt) => Mount(evt.SceneName);
 
@@ -195,23 +249,26 @@ namespace Cthangover.Mods.Rpg
 
         private void OnConditionsChanged(ConditionStateChangedEvent evt)
         {
-            View?.RefreshEvents();
+            View?.RefreshStates();
         }
+
+        // A dialog may have run party.add: the followers change without a condition event.
+        private void OnDialogEnded(DialogEndedEvent evt) => View?.RefreshParty();
 
         private void OnPlayerStepFinished(RpgActorState player)
             => RpgState.Instance.Place(Session.Map.ID, player.Cell.X, player.Cell.Y, player.Facing);
 
-        private void OnTouchTriggered(RpgMapEvent mapEvent) => RpgEventRunner.Run(mapEvent, Session.Map.ID);
+        private void OnStepTriggered(RpgInstance instance) => RpgInteraction.Run(instance, Session.Map.ID, RpgInput.FindDialogBox());
 
-        private void OnEncounterTriggered(string enemies) => RpgBattleService.Start(enemies, null);
+        private void OnPlainStepFinished(RpgWorldSession session) => RpgPlainStepListeners.Notify(session);
 
         private void DetachSession()
         {
             if (Session == null)
                 return;
             Session.PlayerStepFinished -= OnPlayerStepFinished;
-            Session.TouchTriggered -= OnTouchTriggered;
-            Session.EncounterTriggered -= OnEncounterTriggered;
+            Session.StepTriggered -= OnStepTriggered;
+            Session.PlainStepFinished -= OnPlainStepFinished;
             Session = null;
         }
     }

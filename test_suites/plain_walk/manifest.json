@@ -1,0 +1,10 @@
+{
+  "name": "RPG Plain Walk Test",
+  "description": "Headless check that the rpg world runs without turn_battle_base: a minimal map (its own files, no art) is walked with real WASD key events, a wall stops the player, a step trigger runs its commands and sets its self flag, and three plain steps with an Encounters field on the map start no battle. Activated by --itest=rpg_plain_walk with --game=novel_template --new --with-mods=rpg (the template has no battle mechanic; the battles integration does not mount).",
+  "sources": [
+    "src/*.cs"
+  ],
+  "depends": [
+    "rpg>=1"
+  ]
+}

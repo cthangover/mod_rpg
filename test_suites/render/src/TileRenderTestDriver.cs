@@ -7,10 +7,10 @@ namespace Cthangover.Mods.Rpg.Tests
     using Cthangover.Core.Games;
     using Cthangover.Core.Mods.HotReload;
     using Cthangover.Core.Scenes;
-    using Cthangover.Tools.RpgEditor;
     using Cthangover.Core.Mods.Testing;
     using Cthangover.Core.Utils;
     using Cthangover.Mods.Interface.View;
+    using Cthangover.Mods.Rpg.Render;
     using Cthangover.Mods.TileRender;
     using Godot;
     /// <summary>Compares both presentations of identical prepared resources and tests projection/picking invariants.</summary>
@@ -69,7 +69,6 @@ namespace Cthangover.Mods.Rpg.Tests
         private async Task RunContracts()
         {
             passed += TileRenderDeltaContract.Run(this);
-            TestEditor();
             GetTree().Root.GetNode<SceneManager>("SceneManager").SwitchScene("rpg_village");
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -110,39 +109,12 @@ namespace Cthangover.Mods.Rpg.Tests
                 if (arg == "--tile-benchmark") await TileRenderBenchmark.Run(this, shots);
         }
 
-        private void TestEditor()
-        {
-            var document = RpgMapDocument.Create("render_contract", "village", 8, 8, 0);
-            var tileset = RpgTilesetFactory.Instance.Get("village");
-            var canvas = new RpgMapEditorCanvas { Document = document, Tileset = tileset, Atlas = textures.Tileset(tileset.Image),
-                ActiveLayer = RpgEditLayer.Main, SelectedTile = 3 };
-            overlay.AddChild(canvas);
-            canvas.EditStarting += document.BeginChange;
-            try
-            {
-                foreach (var id in new[] { "topdown", "isometric" })
-                {
-                    canvas.SetRenderer(id);
-                    var point = canvas.ProjectCell(new Vector2(2.5f, 3.5f));
-                    ModAssert.True(canvas.Preview.TryPickGround(point, out var cell) && cell == new Vector2I(2, 3), "editor picking " + id);
-                    canvas.EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = point });
-                    canvas.EmitSignal(Control.SignalName.GuiInput, new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = point });
-                    ModAssert.Equal(3, document.Grid.GetTile(RpgLayer.Main, 2, 3), "projected GUI click paints exact cell " + id);
-                    ModAssert.True(document.Undo(), "projected stroke has an undo step " + id);
-                    ModAssert.Equal(-1, document.Grid.GetTile(RpgLayer.Main, 2, 3), "undo restores prior data " + id);
-                    canvas.Refresh();
-                    passed += 4;
-                }
-            }
-            finally { canvas.Free(); }
-        }
-
         private void Build(string mapId)
         {
-            var map = RpgMapFactory.Instance.Get(mapId);
-            var tileset = RpgTilesetFactory.Instance.ForMap(map);
-            builder ??= new RpgRenderSceneBuilder(textures);
-            scene = builder.Build(map, RpgMapGrid.Parse(map), tileset);
+            var map = RpgWorldHost.MapOf(mapId);
+            var session = RpgWorldHost.CreateSession(map);
+            builder ??= new RpgRenderSceneBuilder(textures.Image, textures.Charset);
+            scene = builder.Build(map, session.Cells, session.Statics);
             scene.Zoom = mapId == "rpg_elder_house" ? 1.1f : 0.55f;
             frame.Focus = new Vector2(map.Width, map.Height) / 2;
             frame.Ambient = Colors.White;

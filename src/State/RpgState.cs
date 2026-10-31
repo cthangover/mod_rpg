@@ -10,9 +10,6 @@ namespace Cthangover.Mods.Rpg
     /// <see cref="Data"/> names it starts the player there, any other entry uses
     /// the map's spawn. The same rule restores the player after a battle and
     /// after loading a save.
-    /// <para/>
-    /// <see cref="PendingWinFlag"/> is transient: the flag a running battle sets on
-    /// victory. It is not saved, because battles cannot be saved mid-way.
     /// </summary>
     public class RpgState
     {
@@ -21,9 +18,6 @@ namespace Cthangover.Mods.Rpg
 
         /// <summary>Saved position.</summary>
         public RpgStateData Data { get; set; } = new();
-
-        /// <summary>Story flag set to "1" when the running battle is won; null when none.</summary>
-        public string PendingWinFlag { get; set; }
 
         /// <summary>Stores a position (and the map it is on).</summary>
         public void Place(string map, int x, int y, RpgDirection dir)
@@ -35,7 +29,6 @@ namespace Cthangover.Mods.Rpg
         public void Reset()
         {
             Data = new RpgStateData();
-            PendingWinFlag = null;
         }
     }
 }

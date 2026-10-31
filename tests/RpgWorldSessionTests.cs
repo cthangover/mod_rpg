@@ -2,30 +2,52 @@ namespace Cthangover.Mods.Rpg.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.Text.Json;
     using Cthangover.Core.Mods.Testing;
+    using Cthangover.Core.Utils;
+    using Cthangover.Mods.Rpg.Model;
+    using Cthangover.Mods.Rpg.Play;
     using Godot;
 
-    /// <summary>World decisions run without presentation nodes, including pages, routes and arrival effects.</summary>
+    /// <summary>World decisions run without presentation nodes: blockers, step triggers before plain steps, states, routes, dash.</summary>
     public class RpgWorldSessionTests
     {
+        private static readonly Dictionary<string, RpgObject> Objects = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["pickup"] = Obj(@"{""Id"": ""pickup"", ""Form"": ""sprite"", ""Solid"": false, ""Parts"": [], ""Interact"": {""Trigger"": ""Step"", ""Commands"": [""end""]}}"),
+            ["gate"] = Obj(@"{""Id"": ""gate"", ""Form"": ""sprite"", ""Parts"": [], ""Hidden"": true, ""States"": [{""When"": ""enabled"", ""Hidden"": false}]}"),
+            ["sign"] = Obj(@"{""Id"": ""sign"", ""Form"": ""actor"", ""Charset"": ""none"", ""Interact"": {""Commands"": [""end""]}}"),
+            ["floor"] = Obj(@"{""Id"": ""floor"", ""Form"": ""sprite"", ""Solid"": false, ""Parts"": [], ""Interact"": {""Commands"": [""end""]}}"),
+            ["walker"] = Obj(@"{""Id"": ""walker"", ""Form"": ""actor"", ""Charset"": ""none""}"),
+            ["chest"] = Obj(@"{""Id"": ""chest"", ""Form"": ""actor"", ""Charset"": ""none"", ""Route"": {""Every"": 0.1, ""Steps"": [""right""], ""Repeat"": false},
+                ""States"": [{""When"": ""opened"", ""Facing"": ""Up"", ""Column"": 2}]}"),
+        };
+
         private readonly List<string> effects = new();
         private bool flag;
 
-        private bool Evaluate(string condition) => string.IsNullOrEmpty(condition) || flag;
+        private static RpgObject Obj(string json) => JsonSerializer.Deserialize<RpgObject>(json, JsonOptionsProvider.ReadOptions);
+
+        private static RpgObject Lookup(string id) => Objects.TryGetValue(id, out var value) ? value : null;
+
+        private bool Evaluate(string condition, string scope) => string.IsNullOrEmpty(condition) || flag;
 
         private void OnArrival(RpgActorState actor) => effects.Add($"arrived:{actor.Cell.X},{actor.Cell.Y}");
 
-        private void OnTouch(RpgMapEvent mapEvent) => effects.Add("touch:" + mapEvent.Id);
+        private void OnStep(RpgInstance instance) => effects.Add("step:" + instance.Id);
 
-        private void OnEncounter(string enemies) => effects.Add("encounter:" + enemies);
+        private void OnPlain(RpgWorldSession session) => effects.Add($"plain:{session.Player.Cell.X},{session.Player.Cell.Y}");
 
-        private RpgWorldSession Create(IEnumerable<RpgMapEvent> events = null, RpgEncounterTable encounters = null)
+        private RpgWorldSession Create(params string[] placements)
         {
-            var map = new RpgMap { ID = "session_test", Width = 6, Height = 6, Encounters = encounters };
-            var session = new RpgWorldSession(map, null, events, Evaluate, new Random(7));
+            var map = new RpgMap { ID = "s", Width = 6, Height = 6 };
+            var list = new List<RpgPlacement>();
+            foreach (var json in placements)
+                list.Add(JsonSerializer.Deserialize<RpgPlacement>(json, JsonOptionsProvider.ReadOptions));
+            var session = new RpgWorldSession(map, Lookup, list, Evaluate, new Random(7));
             session.PlayerStepFinished += OnArrival;
-            session.TouchTriggered += OnTouch;
-            session.EncounterTriggered += OnEncounter;
+            session.StepTriggered += OnStep;
+            session.PlainStepFinished += OnPlain;
             return session;
         }
 
@@ -41,45 +63,39 @@ namespace Cthangover.Mods.Rpg.Tests
             ModAssert.True(session.Player.Cell == new Vector2I(3, 2), "accepted command reserves destination");
             ModAssert.Equal(0, test.effects.Count, "no arrival while interpolating");
             session.Tick(1, true, RpgDirection.Right);
-            ModAssert.Equal(1, test.effects.Count, "an already started step completes even after UI opens");
+            ModAssert.Equal(2, test.effects.Count, "an already started step completes even after UI opens");
             ModAssert.Equal("arrived:3,2", test.effects[0], "saved arrival uses logical coordinates");
+            ModAssert.Equal("plain:3,2", test.effects[1], "the plain step follows the arrival");
             session.Tick(1, true, RpgDirection.Right);
-            ModAssert.Equal(1, test.effects.Count, "no repeated completion");
+            ModAssert.Equal(2, test.effects.Count, "no repeated completion");
         }
 
-        [ModTest("session/touch_wins_over_encounter_and_follows_arrival")]
-        static void TouchWinsOverEncounterAndFollowsArrival(ModTestContext ctx)
+        [ModTest("session/step_trigger_suppresses_plain_step")]
+        static void StepTriggerSuppressesPlainStep(ModTestContext ctx)
         {
             var test = new RpgWorldSessionTests();
-            var session = test.Create(new[]
-            {
-                new RpgMapEvent { Id = "pickup", X = 1, Trigger = RpgEventTrigger.Touch, Solid = false }
-            }, new RpgEncounterTable { Steps = 1, Groups = new() { "wolf" } });
+            var session = test.Create(@"{""Id"": ""s/pickup"", ""Object"": ""pickup"", ""X"": 1, ""Y"": 0}");
             session.Tick(1, false, RpgDirection.Right);
-            ModAssert.Equal(2, test.effects.Count, "arrival and touch only");
-            ModAssert.Equal("arrived:1,0", test.effects[0], "position is available before running the event");
-            ModAssert.Equal("touch:pickup", test.effects[1], "touch suppresses the encounter roll");
+            ModAssert.Equal(2, test.effects.Count, "arrival and step only");
+            ModAssert.Equal("arrived:1,0", test.effects[0], "position is available before running the interaction");
+            ModAssert.Equal("step:s/pickup", test.effects[1], "a step trigger does not raise the plain step");
             session.Tick(1, false, RpgDirection.Right);
-            ModAssert.Equal("encounter:wolf", test.effects[3], "a free step can start a battle");
+            ModAssert.Equal("arrived:2,0", test.effects[2], "the next arrival is reported");
+            ModAssert.Equal("plain:2,0", test.effects[3], "a free step raises the plain step, after the arrival");
         }
 
-        [ModTest("session/terrain_and_hidden_events_use_logical_passability")]
-        static void TerrainAndHiddenEventsUseLogicalPassability(ModTestContext ctx)
+        [ModTest("session/hidden_states_and_collision_use_logical_passability")]
+        static void HiddenStatesAndCollision(ModTestContext ctx)
         {
             var test = new RpgWorldSessionTests();
-            var session = test.Create(new[]
-            {
-                new RpgMapEvent { Id = "gate", X = 1, Y = 0, Tile = 5, Condition = "enabled" }
-            });
-            ModAssert.True(session.CanEnter(new Vector2I(1, 0)), "hidden event does not block");
+            var session = test.Create(@"{""Id"": ""s/gate"", ""Object"": ""gate"", ""X"": 1, ""Y"": 0}");
+            ModAssert.True(session.CanEnter(new Vector2I(1, 0)), "a hidden object does not block");
             test.flag = true;
-            session.RefreshEvents();
-            ModAssert.False(session.CanEnter(new Vector2I(1, 0)), "active drawn event blocks even without a sprite node");
+            session.RefreshStates();
+            ModAssert.False(session.CanEnter(new Vector2I(1, 0)), "a state that shows it makes it solid");
             session.Tick(0.1, false, RpgDirection.Right);
             ModAssert.False(session.Player.IsMoving, "blocked step does not start");
             ModAssert.True(session.Player.Facing == RpgDirection.Right, "blocked command still turns");
-            session.Grid.SetCollision(0, 1, RpgCollision.Block);
-            ModAssert.False(session.CanEnter(new Vector2I(0, 1)), "painted collision is respected");
             ModAssert.False(session.CanEnter(new Vector2I(-1, 0)), "outside map is blocked");
         }
 
@@ -87,80 +103,67 @@ namespace Cthangover.Mods.Rpg.Tests
         static void ActionTargetAndFacingAreSharedWithoutView(ModTestContext ctx)
         {
             var test = new RpgWorldSessionTests();
-            var session = test.Create(new[]
-            {
-                new RpgMapEvent { Id = "sign", X = 1, Y = 0, Tile = 1 },
-                new RpgMapEvent { Id = "floor", X = 0, Y = 0, Solid = false }
-            });
+            var session = test.Create(
+                @"{""Id"": ""s/sign"", ""Object"": ""sign"", ""X"": 1, ""Y"": 0}",
+                @"{""Id"": ""s/floor"", ""Object"": ""floor"", ""X"": 0, ""Y"": 0}");
             session.Player.Face(RpgDirection.Right);
-            ModAssert.Equal("sign", session.InteractionTarget().Event.Id, "front event takes precedence over floor");
-            ModAssert.Equal("sign", session.PrepareInteraction().Id, "the executed target is the highlighted one");
-            ModAssert.True(session.FindEvent("sign").Facing == RpgDirection.Left, "NPC turns toward player");
+            ModAssert.Equal("s/sign", session.InteractionTarget().Id, "the faced instance takes precedence over the floor");
+            ModAssert.Equal("s/sign", session.PrepareInteraction().Id, "the executed target is the highlighted one");
+            ModAssert.True(session.Find("s/sign").Actor.Facing == RpgDirection.Left, "an actor turns toward the player");
             session.Player.Face(RpgDirection.Down);
-            ModAssert.Equal("floor", session.PrepareInteraction().Id, "fallback is event under the player");
+            ModAssert.Equal("s/floor", session.PrepareInteraction().Id, "fallback is the non-solid object under the player");
             session.Player.StepTo(RpgDirection.Down);
             ModAssert.Null(session.InteractionTarget(), "no cue during a step");
             ModAssert.Null(session.PrepareInteraction(), "no action during a step");
-            ModAssert.Null(session.FindEvent(null), "null selection is safe");
+            ModAssert.Null(session.Find(null), "null selection is safe");
         }
 
         [ModTest("session/routes_reserve_destinations_and_respect_player")]
         static void RoutesReserveDestinationsAndRespectPlayer(ModTestContext ctx)
         {
             var test = new RpgWorldSessionTests();
-            var session = test.Create(new[]
-            {
-                new RpgMapEvent { Id = "a", X = 1, Y = 1, Tile = 1, Route = new() { Every = 0.1, Steps = new() { "right" } } },
-                new RpgMapEvent { Id = "b", X = 3, Y = 1, Tile = 1, Route = new() { Every = 0.1, Steps = new() { "left" } } }
-            });
+            var session = test.Create(
+                @"{""Id"": ""s/a"", ""Object"": ""walker"", ""X"": 1, ""Y"": 1, ""Route"": {""Every"": 0.1, ""Steps"": [""right""]}}",
+                @"{""Id"": ""s/b"", ""Object"": ""walker"", ""X"": 3, ""Y"": 1, ""Route"": {""Every"": 0.1, ""Steps"": [""left""]}}");
             session.Tick(0.1, false);
-            ModAssert.True(session.FindEvent("a").Cell == new Vector2I(2, 1), "first route reserves target");
-            ModAssert.True(session.FindEvent("b").Cell == new Vector2I(3, 1), "second route cannot enter the reservation");
-            ModAssert.True(session.FindEvent("b").Facing == RpgDirection.Left, "blocked route still faces target");
+            ModAssert.True(session.Find("s/a").Actor.Cell == new Vector2I(2, 1), "first route reserves target");
+            ModAssert.True(session.Find("s/b").Actor.Cell == new Vector2I(3, 1), "second route cannot enter the reservation");
+            ModAssert.True(session.Find("s/b").Actor.Facing == RpgDirection.Left, "blocked route still faces target");
             session.Player.Place(new Vector2I(3, 1), RpgDirection.Down);
             session.Tick(1, true);
             session.Tick(0.2, false);
-            ModAssert.True(session.FindEvent("a").Cell == new Vector2I(2, 1), "route does not enter player cell");
+            ModAssert.True(session.Find("s/a").Actor.Cell == new Vector2I(2, 1), "route does not enter player cell");
         }
 
-        [ModTest("session/page_change_retains_position_and_restarts_route")]
-        static void PageChangeRetainsPositionAndRestartsRoute(ModTestContext ctx)
+        [ModTest("session/state_change_retains_position_and_restarts_route")]
+        static void StateChangeRetainsPositionAndRestartsRoute(ModTestContext ctx)
         {
             var test = new RpgWorldSessionTests();
-            var session = test.Create(new[]
-            {
-                new RpgMapEvent
-                {
-                    Id = "chest", X = 1, Y = 1, Tile = 14,
-                    Route = new() { Every = 0.1, Steps = new() { "right" }, Repeat = false },
-                    Pages = new() { new() { Condition = "opened", Tile = 15, Dir = RpgDirection.Up } }
-                }
-            });
+            var session = test.Create(@"{""Id"": ""s/chest"", ""Object"": ""chest"", ""X"": 1, ""Y"": 1}");
             session.Tick(1, false);
-            var actor = session.FindEvent("chest");
-            ModAssert.True(actor.Cell == new Vector2I(2, 1), "route moved event");
+            var chest = session.Find("s/chest");
+            ModAssert.True(chest.Actor.Cell == new Vector2I(2, 1), "route moved the instance");
             test.flag = true;
-            session.RefreshEvents();
-            ModAssert.Equal(1, actor.PageIndex, "conditional page becomes active");
-            ModAssert.Equal(15, actor.Current.Tile, "look describes the effective page");
-            ModAssert.True(actor.Cell == new Vector2I(2, 1), "page does not reset position");
-            ModAssert.True(actor.Facing == RpgDirection.Up, "explicit page direction applies");
-            ModAssert.Equal(0, actor.RouteIndex, "new page restarts the route");
+            session.RefreshStates();
+            ModAssert.Equal(0, chest.StateIndex, "the state becomes active");
+            ModAssert.Equal(2, chest.Current.Column, "the look describes the active state");
+            ModAssert.True(chest.Actor.Cell == new Vector2I(2, 1), "a state does not reset position");
+            ModAssert.True(chest.Actor.Facing == RpgDirection.Up, "a state naming Facing turns it");
+            ModAssert.Equal(0, chest.Actor.RouteIndex, "a new state restarts the route");
+            ModAssert.False(session.CanEnter(new Vector2I(2, 1)), "the moved instance blocks its new cell");
+            ModAssert.True(session.CanEnter(new Vector2I(1, 1)), "and not the old one");
         }
 
         [ModTest("session/route_clock_pauses_while_ui_blocks_commands")]
         static void RouteClockPausesWhileUiBlocksCommands(ModTestContext ctx)
         {
             var test = new RpgWorldSessionTests();
-            var session = test.Create(new[]
-            {
-                new RpgMapEvent { Id = "cat", X = 1, Y = 1, Route = new() { Every = 1, Steps = new() { "right" } } }
-            });
+            var session = test.Create(@"{""Id"": ""s/cat"", ""Object"": ""walker"", ""X"": 1, ""Y"": 1, ""Route"": {""Every"": 1, ""Steps"": [""right""]}}");
             session.Tick(10, true);
             session.Tick(0.5, false);
-            ModAssert.True(session.FindEvent("cat").Cell == new Vector2I(1, 1), "blocked time does not accumulate route delay");
+            ModAssert.True(session.Find("s/cat").Actor.Cell == new Vector2I(1, 1), "blocked time does not accumulate route delay");
             session.Tick(0.5, false);
-            ModAssert.True(session.FindEvent("cat").Cell == new Vector2I(2, 1), "route starts after one unblocked second");
+            ModAssert.True(session.Find("s/cat").Actor.Cell == new Vector2I(2, 1), "route starts after one unblocked second");
         }
 
         [ModTest("session/dash_changes_duration_not_destination")]

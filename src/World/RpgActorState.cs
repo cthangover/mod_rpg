@@ -16,18 +16,6 @@ namespace Cthangover.Mods.Rpg
         private Vector2 from;
         private float progress = 1f;
 
-        /// <summary>Definition and all its pages, or null for the player.</summary>
-        public RpgMapEvent Event { get; }
-
-        /// <summary>Effective event page, resolved by the world session.</summary>
-        public RpgMapEvent Current { get; internal set; }
-
-        /// <summary>Active page index; -2 means no page has yet been resolved.</summary>
-        public int PageIndex { get; internal set; } = -2;
-
-        /// <summary>Whether conditions currently enable this event in the world.</summary>
-        public bool Visible { get; internal set; } = true;
-
         /// <summary>Route bookkeeping belongs to the simulation, never to a sprite.</summary>
         public int RouteIndex { get; internal set; }
 
@@ -52,11 +40,8 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Continuous walk phase shared by every presentation.</summary>
         public float AnimationTime { get; private set; }
 
-        /// <summary>Creates transient state; no Godot object is allocated.</summary>
-        public RpgActorState(RpgMapEvent mapEvent = null)
-        {
-            Event = mapEvent;
-        }
+        /// <summary>Counts placements: a follower trail notices a teleport by a change here, whoever placed the actor.</summary>
+        public int PlaceCount { get; private set; }
 
         /// <summary>Teleportation stops an unfinished step without reporting its completion.</summary>
         public void Place(Vector2I cell, RpgDirection facing)
@@ -65,6 +50,7 @@ namespace Cthangover.Mods.Rpg
             from = new Vector2(cell.X, cell.Y);
             Facing = facing;
             progress = 1f;
+            PlaceCount++;
         }
 
         /// <summary>A blocked movement command can still turn the actor.</summary>

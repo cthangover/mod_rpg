@@ -1,0 +1,308 @@
+{
+  "Kinds": [
+    {
+      "Kind": "rpg_object",
+      "Name": "rpg/schema/kind/object",
+      "Folder": "objects",
+      "NewId": "{mod}/new_object",
+      "Order": 40,
+      "Fields": [
+        {
+          "Key": "Name",
+          "Type": "locale",
+          "KeyPattern": "{id}/name"
+        },
+        {
+          "Key": "Category",
+          "Type": "text",
+          "Default": "misc"
+        },
+        {
+          "Key": "Form",
+          "Type": "choice",
+          "Options": [
+            "surface",
+            "segment",
+            "sprite",
+            "actor"
+          ],
+          "Required": true
+        },
+        {
+          "Key": "Extends",
+          "Type": "ref",
+          "Kind": "rpg_object"
+        },
+        {
+          "Key": "Solid",
+          "Type": "bool"
+        },
+        {
+          "Key": "Water",
+          "Type": "bool"
+        },
+        {
+          "Key": "Hidden",
+          "Type": "bool"
+        },
+        {
+          "Key": "Surface",
+          "Type": "json"
+        },
+        {
+          "Key": "Segment",
+          "Type": "json"
+        },
+        {
+          "Key": "Footprint",
+          "Type": "json"
+        },
+        {
+          "Key": "Anchor",
+          "Type": "json"
+        },
+        {
+          "Key": "DrawOrder",
+          "Type": "choice",
+          "Options": [
+            "BelowCharacters",
+            "ByPosition",
+            "AboveCharacters"
+          ]
+        },
+        {
+          "Key": "Parts",
+          "Type": "list",
+          "Of": [
+            {
+              "Key": "Id",
+              "Type": "text",
+              "Required": true
+            },
+            {
+              "Key": "Image",
+              "Type": "picture",
+              "Group": "rpg_images",
+              "Required": true
+            },
+            {
+              "Key": "Geometry",
+              "Type": "choice",
+              "Options": [
+                "upright",
+                "ground",
+                "plane",
+                "quad"
+              ],
+              "Default": "upright"
+            },
+            {
+              "Key": "Along",
+              "Type": "choice",
+              "Options": [
+                "auto",
+                "x",
+                "y"
+              ],
+              "Default": "auto"
+            },
+            {
+              "Key": "Only",
+              "Type": "text"
+            },
+            {
+              "Key": "DrawOrder",
+              "Type": "choice",
+              "Options": [
+                "BelowCharacters",
+                "ByPosition",
+                "AboveCharacters"
+              ]
+            },
+            {
+              "Key": "Crop",
+              "Type": "json"
+            },
+            {
+              "Key": "At",
+              "Type": "json"
+            },
+            {
+              "Key": "Size",
+              "Type": "json"
+            },
+            {
+              "Key": "Points",
+              "Type": "json"
+            },
+            {
+              "Key": "SortOffset",
+              "Type": "json"
+            }
+          ]
+        },
+        {
+          "Key": "Charset",
+          "Type": "picture",
+          "Group": "charsets"
+        },
+        {
+          "Key": "Facing",
+          "Type": "choice",
+          "Options": [
+            "Down",
+            "Left",
+            "Right",
+            "Up"
+          ],
+          "Default": "Down"
+        },
+        {
+          "Key": "Column",
+          "Type": "int",
+          "Default": "1"
+        },
+        {
+          "Key": "Variants",
+          "Type": "json"
+        },
+        {
+          "Key": "Interact",
+          "Type": "json"
+        },
+        {
+          "Key": "Light",
+          "Type": "json"
+        },
+        {
+          "Key": "Lights",
+          "Type": "json"
+        },
+        {
+          "Key": "Route",
+          "Type": "json"
+        },
+        {
+          "Key": "States",
+          "Type": "list",
+          "Of": [
+            {
+              "Key": "Id",
+              "Type": "text",
+              "Required": true
+            },
+            {
+              "Key": "When",
+              "Type": "condition"
+            },
+            {
+              "Key": "Hidden",
+              "Type": "bool"
+            },
+            {
+              "Key": "Solid",
+              "Type": "bool"
+            },
+            {
+              "Key": "Facing",
+              "Type": "choice",
+              "Options": [
+                "Down",
+                "Left",
+                "Right",
+                "Up"
+              ]
+            },
+            {
+              "Key": "Parts",
+              "Type": "list",
+              "Of": [
+                {
+                  "Key": "Id",
+                  "Type": "text",
+                  "Required": true
+                },
+                {
+                  "Key": "Image",
+                  "Type": "picture",
+                  "Group": "rpg_images",
+                  "Required": true
+                },
+                {
+                  "Key": "Geometry",
+                  "Type": "choice",
+                  "Options": [
+                    "upright",
+                    "ground",
+                    "plane",
+                    "quad"
+                  ],
+                  "Default": "upright"
+                },
+                {
+                  "Key": "Along",
+                  "Type": "choice",
+                  "Options": [
+                    "auto",
+                    "x",
+                    "y"
+                  ],
+                  "Default": "auto"
+                },
+                {
+                  "Key": "Only",
+                  "Type": "text"
+                },
+                {
+                  "Key": "DrawOrder",
+                  "Type": "choice",
+                  "Options": [
+                    "BelowCharacters",
+                    "ByPosition",
+                    "AboveCharacters"
+                  ]
+                },
+                {
+                  "Key": "Crop",
+                  "Type": "json"
+                },
+                {
+                  "Key": "At",
+                  "Type": "json"
+                },
+                {
+                  "Key": "Size",
+                  "Type": "json"
+                },
+                {
+                  "Key": "Points",
+                  "Type": "json"
+                },
+                {
+                  "Key": "SortOffset",
+                  "Type": "json"
+                }
+              ]
+            },
+            {
+              "Key": "Light",
+              "Type": "json"
+            },
+            {
+              "Key": "Lights",
+              "Type": "json"
+            },
+            {
+              "Key": "Interact",
+              "Type": "json"
+            },
+            {
+              "Key": "Route",
+              "Type": "json"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

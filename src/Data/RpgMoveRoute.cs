@@ -13,6 +13,10 @@ namespace Cthangover.Mods.Rpg
     /// </summary>
     public class RpgMoveRoute
     {
+        /// <summary>Preserves mod-defined JSON fields when the editor saves this data.</summary>
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.Dictionary<string, System.Text.Json.JsonElement> ExtraFields { get; set; }
+
         /// <summary>The steps, repeated from the start when <see cref="Repeat"/> is set.</summary>
         public List<string> Steps { get; set; } = new();
 

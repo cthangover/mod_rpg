@@ -1,0 +1,10 @@
+{
+  "name": "RPG map snapshots",
+  "description": "Pixel snapshots of every rpg_map in every registered tile renderer, for the RPG model v2 migration (claude_plan.md 6.3, items S3/R6). Each map is drawn whole at its zoom, at noon, without atmosphere effects, twice: the game look (events, player, lights) and a probe pass (magenta probe actors on a 3-cell lattice to record occlusion). --snapshot-mode=record writes PNGs and index.json into --snapshot-dir; --snapshot-mode=compare checks the current build against them and writes diff images into <dir>/compare. Optional --snapshot-maps=a,b. Windowed only (headless draws nothing). Activated by --itest=rpg_snapshots with --game=rpg_plus --new.",
+  "sources": [
+    "src/*.cs"
+  ],
+  "depends": [
+    "rpg_plus_game>=1"
+  ]
+}

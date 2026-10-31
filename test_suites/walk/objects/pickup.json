@@ -1,0 +1,25 @@
+{
+  "Kind": "rpg_object",
+  "Items": [
+    {
+      "Id": "rpg_walk/pickup/forest_mushroom",
+      "Form": "sprite",
+      "Category": "pickup",
+      "Solid": false,
+      "Parts": [
+        {
+          "Image": "rpg_walk/forest_mushroom",
+          "Geometry": "upright",
+          "At": [
+            0.125,
+            0.125
+          ],
+          "Size": [
+            0.75,
+            0.75
+          ]
+        }
+      ]
+    }
+  ]
+}

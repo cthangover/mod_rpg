@@ -1,0 +1,18 @@
+{
+  "Kind": "rpg_placement",
+  "Items": [
+    {
+      "Id": "rpg_plain_test/trigger",
+      "Object": "rpg_plain_test/trigger",
+      "X": 3,
+      "Y": 2,
+      "Interact": {
+        "Trigger": "Step",
+        "Commands": [
+          "flag self.reached 1",
+          "end"
+        ]
+      }
+    }
+  ]
+}

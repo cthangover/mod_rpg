@@ -7,35 +7,41 @@ namespace Cthangover.Mods.Rpg.Tests
     using System.Threading.Tasks;
     using Cthangover.Core.Mods.Testing;
     using Cthangover.Core.Utils;
+    using Cthangover.Mods.Rpg.Model;
+    using Cthangover.Mods.Rpg.Play;
+    using Cthangover.Mods.Rpg.Render;
     using Cthangover.Mods.TileRender;
     using Godot;
-    /// <summary>Opt-in measurements with the same map, materials, camera rectangle and edits for both projections.</summary>
+    /// <summary>
+    /// Opt-in measurements (<c>--tile-benchmark</c>) with the same map, materials, camera rectangle and edits for
+    /// both projections: a v2 map of sand with a palm (a 3×4 static sprite) every 8 cells.
+    /// </summary>
     public static class TileRenderBenchmark
     {
         public static async Task Run(Node owner, string output)
         {
             var results = new List<Dictionary<string, object>>();
             using var textures = new RpgTextures();
-            using var builder = new RpgRenderSceneBuilder(textures);
-            var tileset = RpgTilesetFactory.Instance.Get("village");
+            using var builder = new RpgRenderSceneBuilder(textures.Image, textures.Charset);
+            var objects = new RpgObjectLookup();
+            var palm = objects.Find("village_pack/vegetation/palm");
             var viewport = owner.GetViewport().GetViewportRid();
             using var process = Process.GetCurrentProcess();
             RenderingServer.ViewportSetMeasureRenderTime(viewport, true);
             foreach (var size in new[] { 128, 256 })
             {
-                var grid = new RpgMapGrid(size, size);
-                for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) grid.SetTile(RpgLayer.Back, x, y, 0);
-                var trees = 0;
-                for (var y = 8; y < size - 3; y += 8)
+                var map = new RpgMap { ID = "benchmark", Width = size, Height = size, Zoom = 1,
+                    Legend = new() { ["s"] = "village_pack/ground/desert_sand", ["r"] = "village_pack/ground/rocky_ground" } };
+                for (var y = 0; y < size; y++) map.Ground.Add(new string('s', size));
+                // Both materials are on the map from the start, so the edit below changes cells, not the strip.
+                map.Ground[size - 1] = new string('s', size - 1) + "r";
+                var statics = new List<(string Id, RpgObject Object, int X, int Y)>();
+                for (var y = 8; y < size - 4; y += 8)
                 for (var x = 8; x < size - 3; x += 8)
-                {
-                    for (var ty = 0; ty < 3; ty++) for (var tx = 0; tx < 3; tx++)
-                        grid.SetTile(RpgLayer.Main, x + tx, y + ty, 64 + ty * 3 + tx);
-                    trees++;
-                }
-                var map = new RpgMap { ID = "benchmark", Width = size, Height = size, Tileset = "village", Zoom = 1 };
+                    statics.Add(("benchmark/palm_" + statics.Count, palm, x, y));
+                var trees = statics.Count;
                 var clock = Stopwatch.StartNew();
-                var scene = builder.Build(map, grid, tileset);
+                var scene = builder.Build(map, RpgMapCells.Build(map, objects.Find), statics);
                 var row = new Dictionary<string, object> { ["cells_per_axis"] = size, ["cold_ms"] = clock.Elapsed.TotalMilliseconds,
                     ["surface_texture_bytes"] = builder.SurfaceTextureBytes, ["cold_chunks"] = builder.LastBuiltSurfaceChunks,
                     ["trees"] = trees, ["lights"] = 16 };
@@ -78,13 +84,15 @@ namespace Cthangover.Mods.Rpg.Tests
                 }
                 scene.Release();
                 clock.Restart();
-                scene = builder.Build(map, grid, tileset);
+                scene = builder.Build(map, RpgMapCells.Build(map, objects.Find), statics);
                 row["warm_ms"] = clock.Elapsed.TotalMilliseconds;
                 ModAssert.Equal(0, builder.LastBuiltSurfaceChunks, "unchanged map reuses every surface texture");
                 scene.Release();
-                grid.SetTile(RpgLayer.Back, 31, size / 2, 4);
+                var row31 = map.Ground[size / 2].ToCharArray();
+                row31[31] = 'r';
+                map.Ground[size / 2] = new string(row31);
                 clock.Restart();
-                scene = builder.Build(map, grid, tileset);
+                scene = builder.Build(map, RpgMapCells.Build(map, objects.Find), statics);
                 row["edit_ms"] = clock.Elapsed.TotalMilliseconds;
                 row["edit_chunks"] = builder.LastBuiltSurfaceChunks;
                 ModAssert.Equal(4, builder.LastBuiltSurfaceChunks, "a corner edit rebuilds only four halo chunks");

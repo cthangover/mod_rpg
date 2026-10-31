@@ -6,6 +6,10 @@ namespace Cthangover.Mods.Rpg
     /// </summary>
     public class RpgTeleport
     {
+        /// <summary>Preserves mod-defined JSON fields when the editor saves this data.</summary>
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.Dictionary<string, System.Text.Json.JsonElement> ExtraFields { get; set; }
+
         /// <summary>Target map id; empty means the map the event is on.</summary>
         public string Map { get; set; }
 

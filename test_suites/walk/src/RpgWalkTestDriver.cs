@@ -9,19 +9,19 @@ using Cthangover.Core.Settings;
 using Cthangover.Core.Items;
 using Cthangover.Core.Utils;
 using Cthangover.Mods.Interface.View;
+using Cthangover.Mods.Rpg.Battles;
 using Godot;
 
 namespace Cthangover.Mods.Rpg.Tests
 {
     /// <summary>
-    /// Plays the rpg_demo village like a player: key events go through
+    /// Plays the rpg_plus village like a player: key events go through
     /// <see cref="Input.ParseInputEvent"/>, so the world reads them exactly as
     /// it reads a keyboard (physical keys, held state, unhandled action key).
     /// <para/>
     /// A pickup is checked across map rebuilds: the suite's own
-    /// <c>map_events/rpg_village/rpg_walk_test.json</c> lays a mushroom on the demo's
-    /// village (an event added by another mod, shaped like the map editor's
-    /// pickups); it is picked up, the player leaves the map and comes back, then
+    /// <c>placements/rpg_village/rpg_walk_test.json</c> lays a mushroom on the demo's
+    /// village (a placement added by another mod, its state in <c>self.taken</c>); it is picked up, the player leaves the map and comes back, then
     /// saves, loads and comes back again — it must never reappear nor give a
     /// second item.
     /// <para/>
@@ -42,9 +42,10 @@ namespace Cthangover.Mods.Rpg.Tests
         private const string House = "rpg_elder_house";
         private const string WinFlag = "rpg_test_win";
         private const string SaveSlot = "slot_9901";
-        private const string PickupId = "rpg_walk_mushroom";
-        private const string PickupFlag = "rpg_village_rpg_walk_mushroom_taken";
-        private const string Mushroom = "rpg_demo/mushroom";
+        private const string PickupId = "rpg_village/rpg_walk_mushroom";
+        private const string PickupFlag = "rpg_village/rpg_walk_mushroom:taken";
+        private const string Elder = "rpg_elder_house/elder";
+        private const string Mushroom = "rpg_plus/mushroom";
 
         private static readonly Vector2I PickupCell = new(18, 14);
 
@@ -159,15 +160,15 @@ namespace Cthangover.Mods.Rpg.Tests
                     return;
                 case 8:
                     Check(RpgInput.FindDialogBox()?.IsRunning == true, "F talks to the villager");
-                    Check(View.FindEvent("villager")?.Facing == RpgDirection.Right, "the villager turns to the player");
+                    Check(View.Find("rpg_village/villager")?.Actor.Facing == RpgDirection.Right, "the villager turns to the player");
                     Next();
                     return;
                 case 9:
                     if (AdvanceDialog())
                         return;
-                    // A pickup this suite adds to the demo's village (map_events of another mod).
+                    // A pickup this suite adds to the demo's village (its own placements file).
                     mushroomsBefore = Inventory.CheckCount(Mushroom);
-                    Check(View.FindEvent(PickupId)?.Visible == true, "a test mod's map_events file adds a pickup to the demo's village");
+                    Check(View.Find(PickupId)?.Visible == true, "a test mod's placements file adds a pickup to the demo's village");
                     View.PlacePlayer(PickupCell.X - 1, PickupCell.Y, RpgDirection.Right);
                     Press(Key.D, true);
                     Next();
@@ -183,7 +184,7 @@ namespace Cthangover.Mods.Rpg.Tests
                     if (AdvanceDialog() || Flag(PickupFlag) != "1")
                         return;
                     Check(Inventory.CheckCount(Mushroom) == mushroomsBefore + 1, $"stepping on the pickup adds the item, {Inventory.CheckCount(Mushroom)} now");
-                    Check(View.FindEvent(PickupId)?.Visible == false, "the picked item leaves the map");
+                    Check(View.Find(PickupId)?.Visible == false, "the picked item leaves the map");
                     RpgWorldHost.Teleport(new RpgTeleport { Map = House, X = 6, Y = 8, Dir = RpgDirection.Up });
                     Next();
                     return;
@@ -227,13 +228,16 @@ namespace Cthangover.Mods.Rpg.Tests
                     if (AdvanceDialog())
                         return;
                     Check(View.Player.Cell == new Vector2I(6, 8), $"the door teleports into the house at (6,8), got {View.Player.Cell}");
-                    Check(View.FindEvent("elder_quest")?.Visible == true && View.FindEvent("elder_thanks")?.Visible == false, "before the wolf the elder gives the quest");
+                    Check(View.Find(Elder)?.Visible == true, "before the wolf the elder stands in the house");
                     Shot("house");
                     ScenarioCondition.SetFlag("rpg_wolf_dead", "1");
                     Next();
                     return;
                 case 18:
-                    Check(View.FindEvent("elder_quest")?.Visible == false && View.FindEvent("elder_thanks")?.Visible == true, "a story flag swaps the elder's events at once");
+                    // v1 had two elder events swapped by the flag; v2 merged them (same look and scenario,
+                    // the scenario branches on the flag), so the flag must leave the one elder in place.
+                    Check(View.Find(Elder)?.Visible == true && View.Find(Elder).Current.Interact?.Scenario == "rpg_plus/woodland/elder",
+                        "after a story flag the elder still stands and talks through the same scenario");
                     ScenarioCondition.SetFlag("rpg_wolf_dead", "0");
                     Check(RpgBattleService.Start("rpg_slime", WinFlag), "a battle starts from the map");
                     Godot.Engine.TimeScale = 4;
@@ -317,9 +321,9 @@ namespace Cthangover.Mods.Rpg.Tests
         /// <summary>The map was built again (a teleport or a load): the picked item must stay gone and give nothing.</summary>
         private void CheckPickupGone(string when)
         {
-            var pickup = View.FindEvent(PickupId);
+            var pickup = View.Find(PickupId);
             Check(pickup != null && !pickup.Visible, $"the picked item does not come back {when}");
-            Check(View.EventAt(PickupCell, RpgEventTrigger.Touch) == null, $"its cell has no pickup to step on {when}");
+            Check(View.Session.At(PickupCell, Cthangover.Mods.Rpg.Model.RpgInteractTrigger.Step) == null, $"its cell has no pickup to step on {when}");
             Check(Inventory.CheckCount(Mushroom) == mushroomsBefore + 1, $"the inventory still holds exactly the one picked item {when}");
         }
 
@@ -349,7 +353,11 @@ namespace Cthangover.Mods.Rpg.Tests
             var box = RpgInput.FindDialogBox();
             if (box == null || !box.IsRunning)
                 return false;
-            Tap(Key.E);
+            // The villager asks a question (join the party or not): this suite takes the second answer, so the party stays the hero's.
+            if (box.IsWaitingAnswer)
+                box.TrySelectVariant(1);
+            else
+                Tap(Key.E);
             return true;
         }
 

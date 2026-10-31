@@ -1,0 +1,10 @@
+{
+  "name": "RPG Party Walk Test",
+  "description": "Integration test of the party on the rpg_plus village (plan 14.H): the villager joins through party.add and walks behind the hero; followers stay on the hero's trail step by step (both projections), turn with the path, cannot be walked onto by the hero, gather on the hero after a teleport and after a map load, and a follower without a walking sheet logs an ERROR without a crash. Activated by --itest=rpg_party_walk with --game=rpg_plus --new (the prologue is clicked through first); --shots=<dir> saves screenshots (windowed runs only).",
+  "sources": [
+    "src/*.cs"
+  ],
+  "depends": [
+    "rpg_plus_game>=1"
+  ]
+}

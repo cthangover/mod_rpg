@@ -2,7 +2,7 @@
 
 RPG World は、ゲームをクラシックな 2D RPG の趣のあるタイルマップ式 RPG に変えます。キーボードでマス目状のマップを歩き、人と話し、宝箱を開け、ドアをくぐり、モンスターと戦う——そして戦いのあとは元の場所へ戻ります。マップはゲームのごく普通のシーンなので、会話ウィンドウもシナリオもセーブも音楽も時間の流れも、ビジュアルノベルと同じようにマップ上で働きます。
 
-**RPG Plus** の村、森、砂漠はこの仕組みで動いています。マップや登場人物そのものは RPG Demo のようなコンテンツ Mod が担い、この Mod がルールを提供します。
+**RPG Plus** の村、森、砂漠はこの仕組みで動いています。マップや登場人物そのものは `rpg_plus_game` のようなコンテンツ Mod が担い、この Mod がルールを提供します。
 
 ![RPG Plus で村を探索したところ。左上にマップ名、右上にツールバー、左下に操作ヒント。](assets/village.jpg)
 
@@ -19,7 +19,7 @@ RPG World は、ゲームをクラシックな 2D RPG の趣のあるタイル�
 
 ## 例：開いたままの宝箱
 
-長老の家の宝箱は、同じマスに置かれた 2 つのイベントです。ストーリーフラグ `rpg_house_chest` が立っていない間は閉じた宝箱が表示され、そのシナリオは硬貨 3 枚を渡してフラグを立てます。以降は、代わりに開いた宝箱が表示されます。
+村長の家の宝箱は、「宝箱」オブジェクトの配置 1 つで、状態を 2 つ持ちます。ストーリーフラグ `rpg_house_chest` が立っていない間は閉じた宝箱が表示され、そのシナリオが硬貨 3 枚を渡してフラグを立てます。それ以降は開いた状態が表示されます。
 
 ![変更前：正午の長老の家。閉じた宝箱のそばに主人公が立っている。](assets/chest-before.jpg)
 
@@ -28,12 +28,10 @@ RPG World は、ゲームをクラシックな 2D RPG の趣のあるタイル�
 ![変更後：同じマスには開いた宝箱が表示され、インタラクションマーカーの枠が付く。左下のヒントは「E / F · Interact」。](assets/chest-after.jpg)
 
 ```json
-{ "Id": "chest", "X": 9, "Y": 7, "Tile": 14,
-  "Scenario": "rpg_demo/events/house_chest",
-  "Condition": "rpg_house_chest != 1" },
-{ "Id": "chest_open", "X": 9, "Y": 7, "Tile": 15,
-  "Scenario": "rpg_demo/events/chest_empty",
-  "Condition": "rpg_house_chest == 1" }
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+ "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
+                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
@@ -45,32 +43,29 @@ end
 
 ## 作者向け：マップ
 
-マップは Mod の `maps/` フォルダーにある JSON ファイルです。戦闘の背景と環境音のために、`scenes/` にも同名のシーンを置きます。
+マップは Mod の `maps/` フォルダにある JSON ファイルです。地面だけを持ち、その上に立つもの（木、家、樽、人）は配置（placement）で置きます。`scenes/` の同名のシーンが、戦闘の背景とマップの環境音を担当します。
 
-- **描画レイヤー 3 枚**。それぞれタイル番号の行のリスト（`.` は空）です。`Back` は地面・床・水、`Main` はキャラクターと同じ高さの物体（壁、幹、柵）、`Front` はキャラクターの上に描かれるもの（樹冠、軒、アーチ）。
-- **衝突（コリジョン）** — 必要な場所でタイル自身の通行可否を上書きする行レイヤー。崖際の見えない壁や生け垣の抜け道に使います。
-- **タイルセット** — タイルアトラスと、各タイルの属性（solid かどうか、地面の種類、物体）。
-- **Spawn** — 新しく来た者が出現する位置。**Zoom**。屋内用の任意の **Ambient** カラー（なければ時間の流れがマップを照らします）。そして **Atmosphere**（`woodland` は落ち葉・蛍・水のさざ波を追加）。
-- **Encounters** — ランダムエンカウント。平均して `Steps` 歩ごとに 1 回、`Groups` のいずれかと戦います。
+- **Legend**: 地面や柵の種類ごとに 1 文字（例: `"g": "village_pack/ground/grass"`）。`.` は空のセルです。
+- **Ground** と **Structure**: セルごとの文字の行。地面（草、水、床）と柵や壁。
+- **Collision**: `#`（通行不可）、`o`（強制的に通行可、壁の隙間など）、`.`（オブジェクトに任せる）の行。
+- **Spawn**、**Zoom**、**Ambient**（屋内の固定光の色）、**Atmosphere**（`woodland`、`winter_snow`、`desert_dust`、`rain`）、**Encounters**（`Steps` と `Groups`）:
 
 ```json
 "Encounters": { "Steps": 48, "Groups": ["rpg_slime", "rpg_slime,rpg_slime"] }
 ```
 
-## 作者向け：イベント
+## 作者向け：オブジェクトと配置
 
-イベントは、どの Mod の `map_events/<マップ id>/*.json` にも置けます。イベントは**見た目**と**効果**を独立して選べます。
+オブジェクトは `objects/*.json`（`rpg_object`）で定義します。配置は 1 つのオブジェクトを 1 つのマップに置きます。`placements/<マップ>/*.json`（`rpg_placement`）に、`Id`（`<マップ>/<名前>`）、`Object`、`X`、`Y`、そしてその 1 つだけを変える項目を書きます。
 
-- 見た目：キャラクターの `Sprite`、アトラスの `Tile` 1 枚、地面に置いたアイテムの `Icon`、あるいは何もなし（見えないトリガー）。
-- 効果：このマップか別のマップのマスへの `Teleport`、または `Scenario` とそこに書ける任意の `Commands`——`action rpg.battle`、フラグ、クエストを含むシナリオ言語のすべて。
-- `Trigger`: `Action`（正面から E/F）か `Touch`（乗る）。
-- `Solid`: 通行を妨げるか（描画されるイベントは既定で妨げます）。
-- `Condition`: 条件を満たさない間、イベントを隠します。
-- `Pages`: 条件つきの別の見た目と効果。条件を満たす最後のページが使われます。
-- `Route`: 自律的な動き。`{"Steps": ["left", "wait", "right"], "Every": 0.8}` のように、`up`/`down`/`left`/`right`、`random`、`toward`/`away`（プレイヤーに向かって／離れて）、`wait`、`face_…` が使えます。
-- `Light`: イベントのまわりの光。`{"Radius": 3, "Color": "#ffd8a0"}`。夕暮れと夜に見えます。
-
-**他の Mod のマップに追加・変更を加える。** イベントファイルは読み込み順にマージされます。新しい `Id` はそのマップへイベントを追加し、所有者に依存する Mod が同じ `Id` を置けば置き換わります。RPG Plus がデモの長老に新しい会話を与えているのはこの仕組みです。
+- **Form**: `surface`（地面）、`segment`（柵の 1 区画。隣と繋がる）、`sprite`（セル範囲に描かれる絵：木、家、樽、扉）、`actor`（歩く絵を持つ人物）。
+- **Solid**: 通行を止めるか。sprite は既定で止めます。トリガーには `"Solid": false` が必要です。
+- **Interact**: `Trigger` は `Use`（向いて E または F）か `Step`（そのセルに入る）。続けて `Scenario`、`Commands`（シナリオ言語の行）、`Teleport`（`{Map, X, Y, Dir}`）のどれか。
+- **States**: `When`（条件）と変化する内容: `Hidden`、別の絵、`Interact`、`Route`。`When` が成り立つ最後の状態が有効です。配置の中では `self.名前` がその配置自身のフラグ `<Id>:名前` を指します。
+- **Route**、**Light**、**Lights**: 従来どおり（`Steps`、`Every`。光は `Radius`、`Color`、オブジェクトからのセル位置 `At`）。
+- **Extends** と **Variants**: 他のオブジェクトを継承し、版（例: 冬の版）を持ちます。
+- **他の Mod のマップに追加**: 自分の `Id` を持つ配置を置きます。相手のものを置き換えるには同じ `Id` と持ち主への `depends`。削除は `"$delete": true` のパッチです。
+- **主人公の見た目**: パーティのリーダーのキャラクターの `Charset`（例: `village/hero`）。
 
 ## シナリオアクション
 
@@ -84,12 +79,11 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 
 ## ゲーム設定
 
-- **外見**（`rpg.player_charset`）— マップ上で主人公に使うスプライト。ゲームのチャーセットから選びます。
-- **マップ投影**（`tile.renderer`）— トップダウンかアイソメトリック。Tile Rendering を参照。
+- **マップの表示方式**（`tile.renderer`）: 真上か等角（アイソメ）。Tile Rendering を参照。
 
 ## うまくいかないとき
 
-1. **人物や宝箱が反応しない。** 正面から E か F を押してください。`Touch` イベントは乗ったときにしか反応しません。
-2. **モンスターや宝箱が元に戻る。** その `Condition` は、シナリオや `win_flag` が立てるフラグを見ている必要があります。
-3. **開けて見える場所を歩けない。** そのマスは solid なタイルかマップの衝突レイヤーに塞がれています。
-4. **戦闘の背景がない。** `scenes/<map>.json` にあるマップのシーンに `defaultBackground` が必要です。
+1. **人物や宝箱が反応しない。** 正面に立って E または F を押してください。`Step` のオブジェクトは踏むと反応します。
+2. **敵や宝箱が戻ってくる。** それを隠すか変える状態の `When` が、シナリオや `win_flag` が立てるフラグを確かめている必要があります。
+3. **開いて見える場所を通れない。** 固いオブジェクト（`Solid`）か、マップの衝突データの `#` がセルを塞いでいます。
+4. **戦闘の背景がない。** マップのシーン `scenes/<map>.json` に `defaultBackground` が必要です。

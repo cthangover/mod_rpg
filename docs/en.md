@@ -2,7 +2,7 @@
 
 RPG World turns a game into a tile-map RPG in the spirit of classic 2D role-playing games: you walk a grid map with the keyboard, talk to people, open chests, step through doors and fight monsters, then come back to the same spot. A map is an ordinary scene of the game, so the dialog box, scenarios, saving, music and time of day all work on maps as they do in a visual novel.
 
-It powers the village, forest and desert of **RPG Plus**. The maps and people themselves come from content mods such as RPG Demo; this mod supplies the rules.
+It powers the village, forest and desert of **RPG Plus**. The maps and people themselves come from content mods such as `rpg_plus_game`; this mod supplies the rules.
 
 ![Exploring the village in RPG Plus: the map name at the top left, the toolbar at the top right, the controls hint at the bottom left.](assets/village.jpg)
 
@@ -19,7 +19,7 @@ The cell you can act on is framed, and the hint at the bottom left changes to **
 
 ## Example: a chest that stays open
 
-The chest in the elder's house is two events on the same cell. The closed one shows while the story flag `rpg_house_chest` is not set; its scenario gives three coins and sets the flag. From then on the open chest shows instead.
+The chest in the elder's house is one placement of the chest object, with two states. While the story flag `rpg_house_chest` is not set, the closed chest shows; its scenario gives three coins and sets the flag. From then on the open state shows instead.
 
 ![Before: the hero next to the closed chest in the elder's house at noon.](assets/chest-before.jpg)
 
@@ -28,12 +28,10 @@ The chest in the elder's house is two events on the same cell. The closed one sh
 ![After: the same cell now shows the open chest, framed by the interaction marker; the hint at the bottom left reads "E / F · Interact".](assets/chest-after.jpg)
 
 ```json
-{ "Id": "chest", "X": 9, "Y": 7, "Tile": 14,
-  "Scenario": "rpg_demo/events/house_chest",
-  "Condition": "rpg_house_chest != 1" },
-{ "Id": "chest_open", "X": 9, "Y": 7, "Tile": 15,
-  "Scenario": "rpg_demo/events/chest_empty",
-  "Condition": "rpg_house_chest == 1" }
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+ "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
+                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
@@ -45,32 +43,29 @@ end
 
 ## For authors: maps
 
-A map is a JSON file in a mod's `maps/` folder, plus a scene with the same name in `scenes/` for its background in battles and its ambience.
+A map is a JSON file in a mod's `maps/` folder. It holds the ground only: what stands on it (trees, houses, barrels, people) is placed by placements. The scene with the same name in `scenes/` gives the battle background and the map's ambience.
 
-- **Three drawn layers**, each a list of rows of tile numbers (`.` for empty): `Back` — ground, floors, water; `Main` — objects at the characters' level: walls, trunks, fences; `Front` — drawn over the characters: tree crowns, eaves, arches.
-- **Collision** — a row layer that overrides the tiles' own passability where needed: an invisible wall at a cliff edge or a gap in a hedge.
-- **Tileset** — the tile atlas and the properties of its tiles (solid or not, surfaces, objects).
-- **Spawn** — where a new arrival appears; **Zoom**; optional **Ambient** colour for interiors (otherwise the time of day lights the map) and **Atmosphere** (`woodland` adds leaves, fireflies and water ripples).
-- **Encounters** — random battles: on average one per `Steps` steps, against one of the `Groups`.
+- **Legend** — one character per kind of surface or fence: `"g": "village_pack/ground/grass"`. The dot `.` is an empty cell.
+- **Ground** and **Structure** — rows of characters, one per cell: surfaces (grass, water, floors) and fences or walls.
+- **Collision** — rows of `#` (blocked), `o` (forced open, for example a gap in a wall) and `.` (as the objects decide).
+- **Spawn**, **Zoom**, **Ambient** (a fixed light colour for interiors), **Atmosphere** (`woodland`, `winter_snow`, `desert_dust`, `rain`) and **Encounters** (`Steps` and `Groups`):
 
 ```json
 "Encounters": { "Steps": 48, "Groups": ["rpg_slime", "rpg_slime,rpg_slime"] }
 ```
 
-## For authors: events
+## For authors: objects and placements
 
-Events live in `map_events/<map id>/*.json` of any mod. An event has a **look** and an **effect**, chosen independently:
+Objects are defined in `objects/*.json` (`rpg_object`). A placement puts one object on a map: a file `placements/<map>/*.json` (`rpg_placement`) with an `Id` of the form `<map>/<name>`, `Object`, `X`, `Y`, and the fields that change only that one instance.
 
-- look: a character `Sprite`, a single atlas `Tile`, an item `Icon` lying on the ground, or nothing (an invisible trigger);
-- effect: a `Teleport` to a cell of this or another map, or a `Scenario` followed by optional inline `Commands` — the full scenario language, including `action rpg.battle`, flags and quests;
-- `Trigger`: `Action` (E/F while facing it) or `Touch` (stepping onto it);
-- `Solid`: whether it blocks the way (by default, drawn events do);
-- `Condition`: hide the event unless the condition holds;
-- `Pages`: alternative looks and effects, each with its own condition — the last page whose condition holds is used;
-- `Route`: autonomous movement such as `{"Steps": ["left", "wait", "right"], "Every": 0.8}` with `up`/`down`/`left`/`right`, `random`, `toward`/`away` (from the player), `wait` and `face_…`;
-- `Light`: a glow around the event, `{"Radius": 3, "Color": "#ffd8a0"}`, seen at dusk and night.
-
-**Add to or change another mod's map.** Event files are merged in load order: a new `Id` adds an event to that map, and the same `Id` from a mod that depends on the owner replaces it. This is how RPG Plus gives the demo's elder new dialogs.
+- **Form** — `surface` (ground), `segment` (a piece of fence that joins its neighbours), `sprite` (a picture over an area of cells: trees, houses, barrels, doors) or `actor` (a character with a walking sheet).
+- **Solid** — blocks walking. A sprite blocks by default; a trigger needs `"Solid": false`.
+- **Interact** — `Trigger` is `Use` (E or F while facing it) or `Step` (stepping onto the cell); then one of `Scenario`, `Commands` (lines of the scenario language) or `Teleport` (`{Map, X, Y, Dir}`).
+- **States** — `When` (a condition) and what changes: `Hidden`, another picture, `Interact`, `Route`. The last state whose `When` holds applies. In a placement, `self.name` is its own flag `<Id>:name`.
+- **Route**, **Light** and **Lights** — as before (`Steps`, `Every`; a glow with `Radius`, `Color` and a cell offset `At` from the object).
+- **Extends** and **Variants** — inherit from another object and keep versions (for example a winter one).
+- **Add to another mod's map** — ship a placement with your own `Id`. Replace one by the same `Id` with `depends` on its owner; delete one with a patch `"$delete": true`.
+- **The hero's look** — the charset of the party leader (the character's `Charset`, for example `village/hero`).
 
 ## Scenario actions
 
@@ -84,12 +79,11 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 
 ## Game settings
 
-- **Appearance** (`rpg.player_charset`) — the hero's sprite on maps, chosen from the charsets in the game.
 - **Map projection** (`tile.renderer`) — top-down or isometric; see Tile Rendering.
 
 ## If something goes wrong
 
-1. **A person or chest does not react.** Face it and press E or F; a `Touch` event reacts only when you step on it.
-2. **A monster or chest comes back.** Its `Condition` must test the flag that its scenario or `win_flag` sets.
-3. **You cannot walk somewhere that looks open.** A solid tile or the map's collision layer blocks that cell.
+1. **A person or chest does not react.** Face it and press E or F; a `Step` object reacts when you step onto it.
+2. **A monster or chest comes back.** The state that hides or changes it must test the flag that its scenario or `win_flag` sets.
+3. **You cannot walk somewhere that looks open.** A solid object (`Solid`) or a `#` in the map's collision blocks the cell.
 4. **No battle background.** The map's scene in `scenes/<map>.json` needs a `defaultBackground`.

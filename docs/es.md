@@ -2,7 +2,7 @@
 
 RPG World convierte un juego en un RPG de mapas de tiles al estilo de los rol clásicos en 2D: avanzas por una cuadrícula con el teclado, hablas con la gente, abres cofres, cruzas puertas y luchas contra monstruos, y tras el combate vuelves al mismo punto. El mapa es una escena cualquiera del juego, así que el cuadro de diálogo, los escenarios, el guardado, la música y la hora del día funcionan en los mapas igual que en una novela visual.
 
-Este mod da vida a la aldea, el bosque y el desierto de **RPG Plus**. Los mapas y sus habitantes vienen de mods de contenido como RPG Demo; este aporta las reglas.
+Este mod da vida a la aldea, el bosque y el desierto de **RPG Plus**. Los mapas y sus habitantes vienen de mods de contenido como `rpg_plus_game`; este aporta las reglas.
 
 ![Explorando la aldea de RPG Plus: el nombre del mapa arriba a la izquierda, la barra de herramientas arriba a la derecha y la ayuda de controles abajo a la izquierda.](assets/village.jpg)
 
@@ -19,7 +19,7 @@ La casilla con la que puedes interactuar se enmarca, y la ayuda de abajo a la iz
 
 ## Ejemplo: un cofre que sigue abierto
 
-El cofre de la casa del anciano son dos eventos en la misma casilla. El cerrado se muestra mientras la bandera de historia `rpg_house_chest` no esté activa; su escenario entrega tres monedas y activa la bandera. A partir de entonces se muestra en su lugar el cofre abierto.
+El cofre de la casa del anciano es una sola colocación del objeto «cofre», con dos estados. Mientras no esté puesto el indicador de historia `rpg_house_chest`, se ve el cofre cerrado; su escenario da tres monedas y pone el indicador. Desde entonces se ve el estado abierto.
 
 ![Antes: el héroe junto al cofre cerrado en la casa del anciano, al mediodía.](assets/chest-before.jpg)
 
@@ -28,12 +28,10 @@ El cofre de la casa del anciano son dos eventos en la misma casilla. El cerrado 
 ![Después: la misma casilla muestra ahora el cofre abierto, enmarcado por el marcador de interacción; la ayuda de abajo a la izquierda dice «E / F · Interact».](assets/chest-after.jpg)
 
 ```json
-{ "Id": "chest", "X": 9, "Y": 7, "Tile": 14,
-  "Scenario": "rpg_demo/events/house_chest",
-  "Condition": "rpg_house_chest != 1" },
-{ "Id": "chest_open", "X": 9, "Y": 7, "Tile": 15,
-  "Scenario": "rpg_demo/events/chest_empty",
-  "Condition": "rpg_house_chest == 1" }
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+ "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
+                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
@@ -45,32 +43,29 @@ end
 
 ## Para autores: mapas
 
-Un mapa es un archivo JSON en la carpeta `maps/` de un mod, más una escena con el mismo nombre en `scenes/` para su fondo en los combates y su ambiente sonoro.
+Un mapa es un archivo JSON en la carpeta `maps/` de un mod. Solo contiene el suelo: lo que hay sobre él (árboles, casas, barriles, personas) se coloca con colocaciones. La escena con el mismo nombre en `scenes/` da el fondo de los combates y el sonido ambiente del mapa.
 
-- **Tres capas dibujadas**, cada una una lista de filas con números de tile (`.` para vacío): `Back` — suelo, interiores, agua; `Main` — objetos a la altura de los personajes: muros, troncos, vallas; `Front` — se dibuja sobre los personajes: copas de los árboles, aleros, arcos.
-- **Colisiones** — una capa de filas que sustituye la transitabilidad de los tiles donde hace falta: un muro invisible al borde de un acantilado o un hueco en un seto.
-- **Tileset** — el atlas de tiles y las propiedades de cada uno (sólido o no, superficies, objetos).
-- **Spawn** — dónde aparece quien llega nuevo; **Zoom**; el color **Ambient** opcional para interiores (si no, la hora del día ilumina el mapa) y **Atmosphere** (`woodland` añade hojas, luciérnagas y ondas en el agua).
-- **Encounters** — combates aleatorios: de media uno cada `Steps` pasos contra uno de los `Groups`.
+- **Legend**: una letra por cada tipo de superficie o valla: `"g": "village_pack/ground/grass"`. El punto `.` es una celda vacía.
+- **Ground** y **Structure**: filas de letras por celda: superficies (hierba, agua, suelo) y vallas o muros.
+- **Collision**: filas de `#` (bloqueado), `o` (paso abierto a la fuerza, por ejemplo un hueco en un muro) y `.` (lo deciden los objetos).
+- **Spawn**, **Zoom**, **Ambient** (color de luz fijo para interiores), **Atmosphere** (`woodland`, `winter_snow`, `desert_dust`, `rain`) y **Encounters** (`Steps` y `Groups`):
 
 ```json
 "Encounters": { "Steps": 48, "Groups": ["rpg_slime", "rpg_slime,rpg_slime"] }
 ```
 
-## Para autores: eventos
+## Para autores: objetos y colocaciones
 
-Los eventos viven en `map_events/<id del mapa>/*.json` de cualquier mod. Un evento tiene un **aspecto** y un **efecto**, elegidos por separado:
+Los objetos se definen en `objects/*.json` (`rpg_object`). Una colocación pone un objeto en un mapa: un archivo `placements/<mapa>/*.json` (`rpg_placement`) con un `Id` del tipo `<mapa>/<nombre>`, `Object`, `X`, `Y` y los campos que cambian solo esa instancia.
 
-- aspecto: un `Sprite` de personaje, un `Tile` suelto del atlas, el `Icon` de un objeto tirado en el suelo o nada (un desencadenante invisible);
-- efecto: un `Teleport` a una casilla de este u otro mapa, o un `Scenario` seguido de `Commands` en línea opcionales — el lenguaje de escenarios completo, con `action rpg.battle`, banderas y misiones incluidas;
-- `Trigger`: `Action` (E/F estando de cara) o `Touch` (al pisarlo);
-- `Solid`: si bloquea el paso (por defecto, los eventos dibujados sí lo hacen);
-- `Condition`: oculta el evento mientras no se cumpla la condición;
-- `Pages`: aspectos y efectos alternativos, cada uno con su condición; se usa la última página cuya condición se cumpla;
-- `Route`: movimiento autónomo como `{"Steps": ["left", "wait", "right"], "Every": 0.8}`, con `up`/`down`/`left`/`right`, `random`, `toward`/`away` (hacia el jugador o alejándose), `wait` y `face_…`;
-- `Light`: un brillo alrededor del evento, `{"Radius": 3, "Color": "#ffd8a0"}`, visible al anochecer y de noche.
-
-**Añade o cambia el mapa de otro mod.** Los archivos de eventos se combinan en orden de carga: un `Id` nuevo añade un evento al mapa, y el mismo `Id` de un mod que dependa del dueño lo sustituye. Así da RPG Plus nuevos diálogos al anciano de la demo.
+- **Form**: `surface` (superficie), `segment` (un trozo de valla que se une a sus vecinos), `sprite` (una imagen sobre un área de celdas: árboles, casas, barriles, puertas) o `actor` (un personaje con su hoja de caminar).
+- **Solid**: bloquea el paso. Un sprite bloquea por defecto; un disparador necesita `"Solid": false`.
+- **Interact**: `Trigger` es `Use` (E o F mirando al objeto) o `Step` (pisar la celda); luego uno de `Scenario`, `Commands` (líneas del lenguaje de escenarios) o `Teleport` (`{Map, X, Y, Dir}`).
+- **States**: `When` (una condición) y qué cambia: `Hidden`, otra imagen, `Interact`, `Route`. Se aplica el último estado cuyo `When` se cumpla. En una colocación, `self.nombre` es su propio indicador `<Id>:nombre`.
+- **Route**, **Light** y **Lights**: como antes (`Steps`, `Every`; un resplandor con `Radius`, `Color` y la posición `At` en celdas desde el objeto).
+- **Extends** y **Variants**: heredar de otro objeto y mantener versiones (por ejemplo, una de invierno).
+- **Añadir al mapa de otro mod**: pon una colocación con tu propio `Id`. Para reemplazar una ajena, usa su mismo `Id` con `depends` hacia el dueño; para borrarla, un parche con `"$delete": true`.
+- **Aspecto del héroe**: el `Charset` del líder del grupo (por ejemplo `village/hero`).
 
 ## Acciones de escenario
 
@@ -84,12 +79,11 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 
 ## Ajustes del juego
 
-- **Apariencia** (`rpg.player_charset`) — el sprite del héroe en los mapas, elegido entre los charsets del juego.
-- **Proyección del mapa** (`tile.renderer`) — vista superior o isométrica; ver Tile Rendering.
+- **Proyección del mapa** (`tile.renderer`): vista desde arriba o isométrica; ver Tile Rendering.
 
 ## Si algo falla
 
-1. **Un personaje o un cofre no reacciona.** Colócate de frente y pulsa E o F; un evento `Touch` solo responde al pisarlo.
-2. **Un monstruo o un cofre vuelve a aparecer.** Su `Condition` debe comprobar la bandera que activa su propio escenario o `win_flag`.
-3. **No puedes pasar por un sitio que parece libre.** Esa casilla la bloquea un tile sólido o la capa de colisiones del mapa.
+1. **Un personaje o un cofre no reacciona.** Ponte frente a él y pulsa E o F. Un objeto con `Step` reacciona al pisarlo.
+2. **Un monstruo o un cofre vuelve.** El estado que lo oculta o lo cambia debe comprobar el indicador que pone su escenario o `win_flag`.
+3. **No puedes pasar por donde parece abierto.** Un objeto sólido (`Solid`) o una `#` en la colisión del mapa bloquea la celda.
 4. **No hay fondo de combate.** La escena del mapa en `scenes/<map>.json` necesita un `defaultBackground`.

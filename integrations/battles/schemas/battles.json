@@ -1,0 +1,35 @@
+{
+  "Actions": [
+    {
+      "Id": "rpg.battle",
+      "Name": "rpg/schema/builtin/rpg_battle",
+      "Description": "rpg/schema/builtin/rpg_battle_desc",
+      "Category": "battle",
+      "Params": [
+        {
+          "Key": "enemies",
+          "Type": "ref_list",
+          "Kind": "character",
+          "Required": true,
+          "Name": "rpg/schema/field/enemies"
+        },
+        {
+          "Key": "win_flag",
+          "Type": "flag",
+          "Name": "rpg/schema/field/win_flag"
+        }
+      ]
+    }
+  ],
+  "Kinds": [
+    {
+      "Kind": "rpg_map",
+      "Fields": [
+        {
+          "Key": "Encounters",
+          "Type": "json"
+        }
+      ]
+    }
+  ]
+}
