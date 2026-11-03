@@ -10,8 +10,8 @@ namespace Cthangover.Mods.Rpg.Model
     /// One RPG map in model v2 (contract section 8): its size and three grids of one character
     /// per cell — <see cref="Ground"/> (surface objects), <see cref="Structure"/> (segment objects)
     /// and <see cref="Collision"/> codes — with a <see cref="Legend"/> from character to object id,
-    /// then <see cref="Strokes"/> on top. Everything standing on the map is an
-    /// <see cref="RpgPlacement"/> of any mod, so the map file stays the ground only. The id is also
+    /// then <see cref="Strokes"/> on top. Scenery uses <see cref="RpgPlacement"/>;
+    /// invisible scenario rectangles live directly in <see cref="Events"/>. The id is also
     /// the logical scene that shows the map, as in v1.
     /// <para>
     /// The grids are read by <see cref="RpgMapCells.Build"/>; walkability is <see cref="RpgWalkGrid"/>.
@@ -57,6 +57,10 @@ namespace Cthangover.Mods.Rpg.Model
         /// <summary>Cell edits applied after the rows, in order.</summary>
         [MergeKey("Id")]
         public List<RpgStroke> Strokes { get; set; } = new();
+
+        /// <summary>Invisible scenario rectangles stored with the map, independent of object definitions and placements.</summary>
+        [MergeKey("Id")]
+        public List<RpgMapEvent> Events { get; set; } = new();
 
         /// <summary>Default entry cell and facing.</summary>
         public RpgTeleport Spawn { get; set; } = new();

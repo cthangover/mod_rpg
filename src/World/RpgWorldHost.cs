@@ -33,6 +33,11 @@ namespace Cthangover.Mods.Rpg
         private Label prompt;
         private string promptKey;
 
+        /// <summary>Optional behaviors run after simulation and before presentation.</summary>
+        public static event Action<RpgWorldHost, double, bool> WorldUpdated;
+        /// <summary>Background owners release the target before modal interaction turns it.</summary>
+        public static event Action<RpgWorldHost, RpgInstance> InteractionStarting;
+
         /// <summary>The host in the running shell, or null.</summary>
         public static RpgWorldHost Current { get; private set; }
 
@@ -41,6 +46,9 @@ namespace Cthangover.Mods.Rpg
 
         /// <summary>Logical world owned by the shell, independently of its current presentation.</summary>
         public RpgWorldSession Session { get; private set; }
+
+        /// <summary>Authoring pause freezes world time without pausing the scene tree or tool controls.</summary>
+        public bool SimulationPaused { get; set; }
 
         /// <summary>Subscribes to the scene lifecycle and condition changes.</summary>
         public override void _EnterTree()
@@ -67,9 +75,13 @@ namespace Cthangover.Mods.Rpg
         {
             if (View == null)
                 return;
+            RefreshSavedObjects();
             // One UI check per frame (plan section 4): it walks panels and windows.
             var walkBlocked = RpgInput.IsWalkBlockedThisFrame(this);
-            Session.Tick(delta, View.Presentation == null || walkBlocked, RpgInput.HeldDirection(), Input.IsPhysicalKeyPressed(Key.Shift));
+            var simulationBlocked = RpgInput.IsSimulationBlocked(this);
+            Session.Tick(SimulationPaused ? 0 : delta, View.Presentation == null || simulationBlocked || SimulationPaused,
+                walkBlocked ? null : RpgInput.HeldDirection(), Input.IsPhysicalKeyPressed(Key.Shift));
+            WorldUpdated?.Invoke(this, delta, walkBlocked || View.Presentation == null);
             View.Present(delta, walkBlocked);
             if (hud != null && hud.Visible == walkBlocked)
                 hud.Visible = !walkBlocked;
@@ -206,6 +218,8 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Executes exactly the action selected by the logical session.</summary>
         public bool Interact()
         {
+            var selected = Session.InteractionTarget();
+            if (selected != null) InteractionStarting?.Invoke(this, selected);
             var target = Session.PrepareInteraction();
             View.Present(0);
             return target != null && RpgInteraction.Run(target, Session.Map.ID, RpgInput.FindDialogBox());

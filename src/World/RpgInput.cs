@@ -18,6 +18,35 @@ namespace Cthangover.Mods.Rpg
     /// </summary>
     public static class RpgInput
     {
+        private static readonly System.Collections.Generic.HashSet<Node> observers = new();
+
+        /// <summary>Scopes non-modal observation to actual live tool nodes, never a global ignore-all-panels switch.</summary>
+        public static void Observe(Node owner, bool enabled)
+        {
+            if (enabled) observers.Add(owner); else observers.Remove(owner);
+        }
+
+        private static bool IsObserved(Node node)
+        {
+            foreach (var observer in observers)
+                if (GodotObject.IsInstanceValid(observer) && observer.IsInsideTree()
+                    && (observer == node || observer.IsAncestorOf(node))) return true;
+            return false;
+        }
+
+        /// <summary>Modal gameplay still pauses simulation; registered authoring windows and their text fields do not.</summary>
+        public static bool IsSimulationBlocked(Node node)
+        {
+            if (node == null || !node.IsInsideTree() || node.GetTree().Paused || GodotSceneService.IsTransitioning
+                || FindDialogBox()?.IsRunning == true) return true;
+            var viewport = node.GetViewport();
+            var focus = viewport.GuiGetFocusOwner();
+            if (focus is LineEdit or TextEdit && !IsObserved(focus)) return true;
+            foreach (var window in viewport.GetEmbeddedSubwindows())
+                if (window.Visible && window.HasFocus() && !IsObserved(window)) return true;
+            return IsPanelOpen();
+        }
+
         /// <summary>The held direction, or null. Vertical keys win over horizontal ones when both are held.</summary>
         public static RpgDirection? HeldDirection()
         {
@@ -98,7 +127,7 @@ namespace Cthangover.Mods.Rpg
             {
                 if (!UiRegistry.IsPanel(entry) && !(entry.Once && !entry.ShowOnStart))
                     continue;
-                if (host.TryGetInstance(entry.Id, out var panel) && panel.IsVisibleInTree())
+                if (host.TryGetInstance(entry.Id, out var panel) && panel.IsVisibleInTree() && !IsObserved(panel))
                     return true;
             }
             return false;

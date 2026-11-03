@@ -102,6 +102,8 @@ namespace Cthangover.Mods.Rpg.Play
             Walk = new RpgWalkGrid(Cells);
             foreach (var placement in placements ?? Array.Empty<RpgPlacement>())
                 Load(placement, objects);
+            foreach (var mapEvent in map.Events ?? new List<RpgMapEvent>())
+                LoadEvent(mapEvent);
             RefreshStates();
             placeSeen = Player.PlaceCount;
         }
@@ -143,7 +145,8 @@ namespace Cthangover.Mods.Rpg.Play
                 instance.Actor.RouteTimer = instance.Current.Route?.Every ?? 0;
                 if (first || index < 0 || NamesFacing(instance.Effective.States[index]))
                     instance.Actor.Face(instance.Current.Facing);
-                Walk.SetDynamic(id, instance.Current, instance.Actor.Cell.X, instance.Actor.Cell.Y);
+                if (instance.RouteHidden) Walk.RemoveDynamic(id);
+                else Walk.SetDynamic(id, instance.Current, instance.Actor.Cell.X, instance.Actor.Cell.Y);
             }
         }
 
@@ -176,7 +179,8 @@ namespace Cthangover.Mods.Rpg.Play
             if (faced != null)
                 return faced;
             var here = At(Player.Cell, RpgInteractTrigger.Use);
-            return here != null && !here.BlocksAt(Player.Cell) ? here : null;
+            return here != null && (!here.BlocksAt(Player.Cell)
+                || Cells.Collision(Player.Cell.X, Player.Cell.Y) == RpgCollision.Open) ? here : null;
         }
 
         /// <summary>The <see cref="InteractionTarget"/>; an actor in front of the player turns to face them.</summary>
@@ -268,6 +272,21 @@ namespace Cthangover.Mods.Rpg.Play
             staticLights.AddRange(RpgObjectLights.Of(effective, new Vector2(placement.X, placement.Y), placement.ID));
         }
 
+        private void LoadEvent(RpgMapEvent mapEvent)
+        {
+            if (mapEvent == null || string.IsNullOrWhiteSpace(mapEvent.Id) || mapEvent.Id.Contains('/')
+                || mapEvent.Width < 1 || mapEvent.Height < 1 || mapEvent.X < 0 || mapEvent.Y < 0
+                || mapEvent.Width > Map.Width - mapEvent.X || mapEvent.Height > Map.Height - mapEvent.Y
+                || instances.ContainsKey(mapEvent.Scope(Map.ID)) || StaticIdTaken(mapEvent.Scope(Map.ID)))
+            {
+                GameLogger.Log("RPG", $"map '{Map.ID}': invalid or duplicate event '{mapEvent?.Id}' skipped", LogLevel.Error);
+                return;
+            }
+            var instance = new RpgInstance(mapEvent.AsPlacement(Map.ID), mapEvent.AsObject(), false);
+            instances.Add(instance.Id, instance);
+            ordered.Add(instance);
+        }
+
         private bool StaticIdTaken(string id)
         {
             foreach (var placed in statics)
@@ -296,7 +315,7 @@ namespace Cthangover.Mods.Rpg.Play
             {
                 var actor = instance.Actor;
                 var route = instance.Current.Route;
-                if (!instance.Visible || route?.Steps == null || route.Steps.Count == 0 || actor.IsMoving)
+                if (instance.RouteHeld || instance.Current.Hidden || route?.Steps == null || route.Steps.Count == 0 || actor.IsMoving)
                     continue;
                 actor.RouteTimer -= delta;
                 if (actor.RouteTimer > 0)
@@ -308,18 +327,51 @@ namespace Cthangover.Mods.Rpg.Play
                         continue;
                     actor.RouteIndex = 0;
                 }
-                var step = RpgRouteStep.Resolve(route.Steps[actor.RouteIndex++], actor.Cell, Player.Cell, random);
+                var instruction = route.Steps[actor.RouteIndex++].Trim().ToLowerInvariant();
+                if (instruction == "hide")
+                {
+                    instance.RouteHidden = true;
+                    Walk.RemoveDynamic(instance.Id);
+                    continue;
+                }
+                if (instruction == "reset" && instance.RouteHidden)
+                {
+                    actor.Place(new Vector2I(instance.Placement.X, instance.Placement.Y), instance.Current.Facing);
+                    continue;
+                }
+                if (instruction == "show")
+                {
+                    if (!instance.RouteHidden) continue;
+                    if (actor.Cell == Player.Cell || Followers.Occupies(actor.Cell) || !CanEnter(actor.Cell))
+                    {
+                        actor.RouteIndex--;
+                        continue;
+                    }
+                    instance.RouteHidden = false;
+                    Walk.SetDynamic(instance.Id, instance.Current, actor.Cell.X, actor.Cell.Y);
+                    continue;
+                }
+                if (instruction.StartsWith("wait:") && double.TryParse(instruction.Substring(5), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var seconds) && double.IsFinite(seconds))
+                {
+                    actor.RouteTimer = Math.Clamp(seconds, 0.1, 600);
+                    continue;
+                }
+                if (instance.RouteHidden) continue;
+                var step = RpgRouteStep.Resolve(instruction, actor.Cell, Player.Cell, random);
                 if (!step.Direction.HasValue)
                     continue;
                 var next = actor.Cell + RpgDirections.Delta(step.Direction.Value);
                 if (step.Moves && next != Player.Cell && !Followers.Occupies(next) && CanEnterAs(instance, next))
                 {
+                    actor.Speed = float.IsFinite(route.Speed) ? Math.Clamp(route.Speed, 1f, 12f) : RpgActorState.TilesPerSecond;
                     actor.StepTo(step.Direction.Value);
                     Walk.SetDynamic(instance.Id, instance.Current, actor.Cell.X, actor.Cell.Y);
                 }
                 else
                 {
                     actor.Face(step.Direction.Value);
+                    if (step.Moves && route.RetryBlocked) actor.RouteIndex--;
                 }
             }
         }

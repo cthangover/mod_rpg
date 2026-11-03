@@ -84,6 +84,33 @@ namespace Cthangover.Mods.Rpg.Tests
             ModAssert.Equal("plain:2,0", test.effects[3], "a free step raises the plain step, after the arrival");
         }
 
+        [ModTest("session/map_override_allows_solid_step_events_and_npcs")]
+        static void MapOverridesEvents(ModTestContext ctx)
+        {
+            var test = new RpgWorldSessionTests();
+            var map = new RpgMap { ID = "s", Width = 6, Height = 6, Collision = new List<string> { ".oo#.." } };
+            var placements = new[]
+            {
+                JsonSerializer.Deserialize<RpgPlacement>(@"{""Id"": ""s/event"", ""Object"": ""pickup"", ""X"": 1, ""Y"": 0, ""Solid"": true}", JsonOptionsProvider.ReadOptions),
+                new RpgPlacement { ID = "s/sign", Object = "sign", X = 2, Y = 0 },
+                new RpgPlacement { ID = "s/floor", Object = "floor", X = 3, Y = 0 },
+            };
+            var session = new RpgWorldSession(map, Lookup, placements, test.Evaluate);
+            session.StepTriggered += test.OnStep;
+            session.Relocate(Vector2I.Zero, RpgDirection.Right);
+            ModAssert.True(session.Find("s/event").Current.IsSolid, "event's own solidity remains intact");
+            session.Tick(1, false, RpgDirection.Right);
+            ModAssert.Equal(1, session.Player.Cell.X, "player enters the solid event's o cell");
+            ModAssert.Equal("step:s/event", test.effects[0], "opening collision preserves the step trigger");
+            session.RefreshStates();
+            session.Tick(1, false, RpgDirection.Right);
+            ModAssert.Equal(2, session.Player.Cell.X, "player enters the NPC's o cell after state refresh");
+            session.Player.Face(RpgDirection.Up);
+            ModAssert.True(session.InteractionTarget() == session.Find("s/sign"), "Use interaction remains available on the opened cell");
+            session.Tick(1, false, RpgDirection.Right);
+            ModAssert.Equal(2, session.Player.Cell.X, "map # overrides a non-solid floor event");
+        }
+
         [ModTest("session/hidden_states_and_collision_use_logical_passability")]
         static void HiddenStatesAndCollision(ModTestContext ctx)
         {

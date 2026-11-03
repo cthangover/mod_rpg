@@ -50,11 +50,17 @@ namespace Cthangover.Mods.Rpg.Play
         /// <summary>A behaviour-less actor: walk grid like scenery, never re-evaluated.</summary>
         public bool IsStatic { get; }
 
+        /// <summary>Temporary behavior ownership stops new routes; existing steps still arrive.</summary>
+        public bool RouteHeld { get; set; }
+
         /// <summary>Position and movement; <see cref="RpgActorState.Cell"/> is the object origin (top-left footprint cell).</summary>
         public RpgActorState Actor { get; } = new();
 
         /// <summary>Drawn, solid and interactive: not <see cref="RpgObject.Hidden"/> in the current state.</summary>
-        public bool Visible => Current != null && !Current.Hidden;
+        public bool Visible => Current != null && !Current.Hidden && !RouteHidden;
+
+        /// <summary>Transient route absence; hidden walkers still advance their route clock.</summary>
+        public bool RouteHidden { get; internal set; }
 
         /// <summary>Lights of the current state, positions relative to the origin, colours already parsed.</summary>
         public IReadOnlyList<TileLight> Lights { get; internal set; } = new List<TileLight>();

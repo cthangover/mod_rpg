@@ -305,7 +305,7 @@ namespace Cthangover.Mods.Rpg
                 var looks = new List<TileVisual>();
                 if (actor)
                 {
-                    var look = instance.Visible ? builder.ActorLook(instance.Current, TileSize) : null;
+                    var look = !instance.Current.Hidden ? builder.ActorLook(instance.Current, TileSize) : null;
                     if (look != null)
                         looks.Add(look);
                 }

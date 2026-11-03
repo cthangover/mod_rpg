@@ -8,8 +8,7 @@ namespace Cthangover.Mods.Rpg.Model.Tests
 
     /// <summary>
     /// Walkability of a v2 map: brush objects (solid water, fences), footprint masks of static and
-    /// dynamic placements, the collision overrides, and their order — a solid dynamic placement
-    /// blocks even on a forced-open cell, a forced-open cell beats terrain and static objects.
+    /// dynamic placements and the map's authoritative collision overrides: forced-open beats every object.
     /// </summary>
     public class RpgWalkGridTests
     {
@@ -91,7 +90,7 @@ namespace Cthangover.Mods.Rpg.Model.Tests
 
             var npc = Obj(@"{""Id"": ""npc"", ""Form"": ""actor"", ""Charset"": ""c"", ""Footprint"": {""Size"": [3, 3]}}");
             grid.SetDynamic("field/npc", npc, 6, 0);
-            ModAssert.False(grid.IsWalkable(6, 0), "a solid dynamic placement blocks even a forced-open cell");
+            ModAssert.True(grid.IsWalkable(6, 0), "map forced-open overrides a solid dynamic placement");
             ModAssert.True(grid.IsWalkable(6, 2), "an actor stands on one cell whatever its footprint");
             grid.SetDynamic("field/npc", npc, 0, 0);
             ModAssert.True(grid.IsWalkable(6, 0), "moving clears the old cell");
@@ -111,6 +110,27 @@ namespace Cthangover.Mods.Rpg.Model.Tests
             ModAssert.False(grid.IsWalkable(0, 2), "on a '#' cell");
             grid.RemoveDynamic("field/blocker");
             ModAssert.False(grid.IsWalkable(0, 2), "removing a dynamic object never opens a blocked cell");
+        }
+
+        [ModTest("walk/explicit_collision_overrides_all_dynamic_marks")]
+        static void MapPriority(ModTestContext ctx)
+        {
+            var map = new RpgMap { ID = "priority", Width = 3, Height = 1, Collision = new List<string> { "o.#" } };
+            var grid = new RpgWalkGrid(RpgMapCells.Build(map, Lookup));
+            var door = Obj(@"{""Id"": ""door"", ""Form"": ""sprite"", ""Footprint"": {""Size"": [3, 1], ""Solid"": [""###""]}, ""Parts"": []}");
+            grid.SetDynamic("door", door, 0, 0);
+            grid.SetDynamic("overlap", door, 0, 0);
+            ModAssert.True(grid.IsWalkable(0, 0), "o overrides overlapping dynamic masks");
+            ModAssert.False(grid.IsWalkable(1, 0), ". retains dynamic collision");
+            ModAssert.False(grid.IsWalkable(2, 0), "# stays blocked");
+            grid.RemoveDynamic("door");
+            ModAssert.True(grid.IsWalkable(0, 0), "removing one mark does not change o");
+            ModAssert.False(grid.IsWalkable(1, 0), "the remaining overlap still blocks auto");
+            grid.RemoveDynamic("overlap");
+            ModAssert.True(grid.IsWalkable(1, 0), "auto opens when all marks leave");
+            ModAssert.False(grid.IsWalkable(2, 0), "removing objects cannot clear #");
+            grid.SetDynamic("door", door, 0, 0);
+            ModAssert.True(grid.IsWalkable(0, 0), "a later solid state cannot override o");
         }
 
         [ModTest("walk/object_blocks_at")]

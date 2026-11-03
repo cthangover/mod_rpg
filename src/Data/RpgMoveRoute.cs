@@ -23,6 +23,12 @@ namespace Cthangover.Mods.Rpg
         /// <summary>Seconds between steps.</summary>
         public double Every { get; set; } = 1.0;
 
+        /// <summary>Walking speed in cells per second, independent of instruction pauses.</summary>
+        public float Speed { get; set; } = 4.5f;
+
+        /// <summary>Retry obstructed steps instead of losing the intended path.</summary>
+        public bool RetryBlocked { get; set; }
+
         /// <summary>Whether the route starts over after the last step.</summary>
         public bool Repeat { get; set; } = true;
     }

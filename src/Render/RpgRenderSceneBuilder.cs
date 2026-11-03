@@ -92,7 +92,9 @@ namespace Cthangover.Mods.Rpg.Render
                 Revision = ++_revision,
                 Size = new Vector2I(cells.Width, cells.Height),
                 TileSize = tileSize,
-                Zoom = Math.Max(1f, (float)Math.Round(map?.Zoom ?? 2f, MidpointRounding.AwayFromZero)),
+                // Preserve fractional downscaling; magnification still uses whole pixels.
+                Zoom = map?.Zoom is > 0f and < 1f ? map.Zoom
+                    : Math.Max(1f, (float)Math.Round(map?.Zoom ?? 2f, MidpointRounding.AwayFromZero)),
                 Atmosphere = map?.Atmosphere,
                 Effects = map?.Effects ?? new List<Cthangover.Mods.Effects.Atmosphere.AtmospherePlacement>(),
             };

@@ -50,6 +50,18 @@ namespace Cthangover.Mods.Rpg.Render.Tests
             @"{""Id"": ""t/npc"", ""Form"": ""actor"", ""Charset"": ""people/npc"", ""Facing"": ""Left""}",
         };
 
+        [ModTest("render/fractional_downscale_survives_map_roundtrip")]
+        static void FractionalDownscale(ModTestContext ctx)
+        {
+            var map = JsonSerializer.Deserialize<Model.RpgMap>(@"{""Id"":""zoom"",""Width"":1,""Height"":1,""Zoom"":0.5}");
+            var restored = JsonSerializer.Deserialize<Model.RpgMap>(JsonSerializer.Serialize(map));
+            ModAssert.CloseTo(0.5, restored.Zoom, what: "half zoom survives the map JSON round trip");
+            using var builder = new RpgRenderSceneBuilder(_ => null, _ => null);
+            var cells = RpgMapCells.Build(restored, _ => null);
+            var scene = builder.Build(restored, cells, null);
+            ModAssert.CloseTo(0.5, scene.Zoom, what: "the renderer preserves half zoom instead of clamping it to one");
+        }
+
         [ModTest("render/fixture_scene_parts_segments_surfaces")]
         static void FixtureScene(ModTestContext ctx)
         {

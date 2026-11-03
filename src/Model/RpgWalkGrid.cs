@@ -9,15 +9,14 @@ namespace Cthangover.Mods.Rpg.Model
     /// <list type="number">
     /// <item>outside the map → blocked;</item>
     /// <item><c>Collision</c> <c>#</c> → blocked;</item>
-    /// <item>a visible dynamic placement solid there → blocked (also on an <c>o</c> cell, as v1 events
-    /// did: a locked door in an opened doorway, an NPC walking onto such a cell);</item>
-    /// <item><c>Collision</c> <c>o</c> → open;</item>
+    /// <item><c>Collision</c> <c>o</c> → open, overriding every object's collision;</item>
+    /// <item>a visible dynamic placement solid there → blocked;</item>
     /// <item>a static placement solid there → blocked;</item>
     /// <item>the <c>Structure</c> segment is solid → blocked;</item>
     /// <item>the <c>Ground</c> surface is solid (water) → blocked;</item>
     /// <item>otherwise open.</item>
     /// </list>
-    /// Terrain (rules 2, 4, 6, 7) and static placements are folded into one array when the map is
+    /// Terrain (rules 2, 3, 6, 7) and static placements are folded into one array when the map is
     /// built, so the per-step question is two array reads. Dynamic placements change at run time
     /// (states, <c>Hidden</c>, routes): the runtime re-marks one with <see cref="SetDynamic"/> when it
     /// moves or changes, and the grid keeps a count per cell so overlapping objects stay correct.
@@ -117,7 +116,7 @@ namespace Cthangover.Mods.Rpg.Model
         public bool IsWalkable(int x, int y)
         {
             var at = Index(x, y);
-            return at >= 0 && _dynamic[at] == 0 && !_blocked[at];
+            return at >= 0 && !_blocked[at] && (_forced[at] || _dynamic[at] == 0);
         }
 
         private int Index(int x, int y)
