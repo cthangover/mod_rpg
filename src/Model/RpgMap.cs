@@ -5,6 +5,7 @@ namespace Cthangover.Mods.Rpg.Model
     using Cthangover.Core.Factories;
     using Cthangover.Core.Mods.Patches;
     using Cthangover.Mods.Effects.Atmosphere;
+    using Cthangover.Mods.Time;
 
     /// <summary>
     /// One RPG map in model v2 (contract section 8): its size and three grids of one character
@@ -61,6 +62,10 @@ namespace Cthangover.Mods.Rpg.Model
         /// <summary>Invisible scenario rectangles stored with the map, independent of object definitions and placements.</summary>
         [MergeKey("Id")]
         public List<RpgMapEvent> Events { get; set; } = new();
+
+        /// <summary>Shared 2D light definitions. Positions use this map as a coordinate basis and may extend onto artwork beyond the floor; radius is in cells. Patch identity is id.</summary>
+        [MergeKey("id")]
+        public List<LightDef> Lights { get; set; } = new();
 
         /// <summary>Default entry cell and facing.</summary>
         public RpgTeleport Spawn { get; set; } = new();

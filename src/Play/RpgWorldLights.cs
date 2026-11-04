@@ -20,6 +20,7 @@ namespace Cthangover.Mods.Rpg.Play
 
         private readonly RpgWorldSession session;
         private readonly Color? ambient;
+        private readonly List<TileLight> mapLights;
         private readonly List<TileLight> candidates = new();
         private readonly List<TileLight> moving = new();
         private Vector2 focus;
@@ -29,6 +30,7 @@ namespace Cthangover.Mods.Rpg.Play
         {
             this.session = session;
             var map = session.Map;
+            mapLights = RpgMapLights.Of(map);
             var cycle = map.LightMode == null || map.LightMode == "cycle";
             ambient = cycle && !string.IsNullOrEmpty(map.Ambient) && Color.HtmlIsValid(map.Ambient) ? Color.FromHtml(map.Ambient) : null;
         }
@@ -52,6 +54,7 @@ namespace Cthangover.Mods.Rpg.Play
             focus = from;
             target.Clear();
             candidates.Clear();
+            candidates.AddRange(mapLights);
             candidates.AddRange(session.StaticLights);
             var used = 0;
             foreach (var instance in session.Instances)

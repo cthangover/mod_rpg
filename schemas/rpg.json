@@ -132,6 +132,10 @@
         {
           "Key": "Events",
           "Type": "json"
+        },
+        {
+          "Key": "Lights",
+          "Type": "json"
         }
       ]
     }
