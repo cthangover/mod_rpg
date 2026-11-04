@@ -10,7 +10,7 @@ namespace Cthangover.Mods.Rpg
     /// </summary>
     public class RpgTextures : System.IDisposable
     {
-        /// <summary>File group of walking sheets (3 columns × 4 rows, <c>TileWalkSheet</c>).</summary>
+        /// <summary>File group of walking sheets (per-sheet columns × 4 rows, <c>TileWalkSheet</c>).</summary>
         public const string CharsetGroup = "charsets";
 
         /// <summary>

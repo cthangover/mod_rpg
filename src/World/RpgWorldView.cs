@@ -253,7 +253,7 @@ namespace Cthangover.Mods.Rpg
             player.Position = Session.Player.Position;
             player.Visible = true;
             player.Facing = (int)Session.Player.Facing;
-            player.Column = Column(Session.Player);
+            player.Column = Column(Session.Player, player.Look);
         }
 
         // The followers' poses: each one is its party member's walking sheet on the follower's own trail position.
@@ -275,7 +275,7 @@ namespace Cthangover.Mods.Rpg
                 pose.Visible = pose.Look != null;
                 pose.Position = member.Actor.Position;
                 pose.Facing = (int)member.Actor.Facing;
-                pose.Column = Column(member.Actor);
+                pose.Column = Column(member.Actor, pose.Look);
             }
         }
 
@@ -330,15 +330,15 @@ namespace Cthangover.Mods.Rpg
                 pose.Position = instance.Actor.Position;
                 pose.Visible = instance.Visible && pose.Look != null;
                 pose.Facing = (int)instance.Actor.Facing;
-                pose.Column = actor && !instance.Actor.IsMoving ? instance.Current.Column : Column(instance.Actor);
+                pose.Column = actor && !instance.Actor.IsMoving
+                    ? instance.Current.Column == TileWalkSheet.IdleColumn
+                        ? TileWalkSheet.Animation(pose.Look?.Texture).IdleColumn : instance.Current.Column
+                    : Column(instance.Actor, pose.Look);
             }
         }
 
-        private static int Column(RpgActorState state)
-        {
-            var cycle = (int)state.AnimationTime % 4;
-            return !state.IsMoving ? 1 : cycle == 3 ? 1 : cycle;
-        }
+        private static int Column(RpgActorState state, TileVisual look)
+            => TileWalkSheet.Animation(look?.Texture).Column(state.AnimationTime, state.IsMoving);
 
         // The visible stand-in for a leader without a walking sheet (an ERROR is already logged).
         private TileVisual Placeholder()

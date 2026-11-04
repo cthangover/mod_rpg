@@ -156,14 +156,16 @@ namespace Cthangover.Mods.Rpg.Render
                 return null;
             }
             var sheet = texture.GetSize();
-            var size = TileWalkSheet.FrameSize(sheet) / (tileSize > 0 ? tileSize : 32);
+            var animation = TileWalkSheet.Animation(texture);
+            var size = TileWalkSheet.FrameSize(sheet, animation.Columns) / (tileSize > 0 ? tileSize : 32);
             return new TileVisual
             {
                 Id = actor.ID,
                 Texture = texture,
                 Bounds = new Rect2(new Vector2(0.5f - size.X / 2, 1 - size.Y), size),
                 Anchor = new Vector2(0.5f, 1),
-                Source = TileWalkSheet.Frame(sheet, actor.Column, (int)actor.Facing),
+                Source = TileWalkSheet.Frame(texture, actor.Column == TileWalkSheet.IdleColumn
+                    ? animation.IdleColumn : actor.Column, (int)actor.Facing),
                 Upright = true,
             };
         }
