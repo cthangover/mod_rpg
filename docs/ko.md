@@ -28,14 +28,14 @@ RPG World는 게임을 클래식 2D 롤플레이 게임 스타일의 타일 맵 
 ![이후: 같은 칸에 이제 열린 상자가 표시되고 상호 작용 마커 테두리가 둘러짐. 왼쪽 아래 힌트는 "E / F · Interact".](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "상자 안에는 낡은 양말과 '만지지 마시오'라고 쓴 쪽지. 이미 늦었다. 양말 밑에 동전 세 닢." key=rpg_demo/chest/house
+ptext "상자 안에는 낡은 양말과 '만지지 마시오'라고 쓴 쪽지. 이미 늦었다. 양말 밑에 동전 세 닢." key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ end
 
 - **Form**: `surface`(바닥), `segment`(울타리 한 칸, 이웃과 이어짐), `sprite`(칸 범위 위의 그림: 나무, 집, 통, 문), `actor`(걷는 그림이 있는 인물).
 - **Solid**: 이동을 막는지. sprite는 기본으로 막습니다. 트리거에는 `"Solid": false`가 필요합니다.
-- **Interact**: `Trigger`는 `Use`(마주 보고 E 또는 F)나 `Step`(칸에 들어감). 이어서 `Scenario`, `Commands`(시나리오 언어 줄), `Teleport`(`{Map, X, Y, Dir}`) 중 하나.
+- **Interact** — `Trigger`는 `Use`(마주 보고 E/F) 또는 `Step`(진입 시)입니다. `Scenario`, `Commands`, 둘 다 지정할 수 있으며 명령은 시나리오의 `end` 뒤에도 이어서 실행됩니다. `Teleport`(`{Map, X, Y, Dir}`)는 단독 실행하고 대화 명령을 건너뜁니다.
 - **States**: `When`(조건)과 바뀌는 내용: `Hidden`, 다른 그림, `Interact`, `Route`. `When`이 참인 마지막 상태가 적용됩니다. 배치 안에서 `self.이름`은 그 배치 자신의 플래그 `<Id>:이름`입니다.
 - **Route**, **Light**, **Lights**: 예전과 같습니다(`Steps`, `Every`; 빛은 `Radius`, `Color`, 오브젝트 기준 칸 위치 `At`).
 - **Extends**와 **Variants**: 다른 오브젝트를 물려받고, 버전(예: 겨울)을 가집니다.
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **적이나 상자가 되살아난다.** 그것을 숨기거나 바꾸는 상태의 `When`이 시나리오나 `win_flag`가 설정하는 플래그를 확인해야 합니다.
 3. **열려 보이는 곳으로 갈 수 없다.** 단단한 오브젝트(`Solid`) 또는 맵 충돌의 `#`가 칸을 막고 있습니다.
 4. **전투 배경이 없다.** 맵 씬 `scenes/<map>.json`에 `defaultBackground`가 필요합니다.
+
+## 맵 소유 이벤트와 선택적 전투
+
+보이지 않는 영역은 맵의 `Events`에 직접 저장됩니다. 로컬 `Id`, `X`, `Y`, `Width`, `Height`, `Trigger`, `When`, `Solid`와 `Scenario` 및 `Commands` 또는 단독 `Teleport`를 사용합니다. 오브젝트나 배치는 필요 없습니다. `self.done`은 `<map>/<event>:done`에 속하므로 ID를 유지하세요. 편집기에서 Event를 선택하고 영역을 그린 다음 명령 입력, Apply event, Save 순으로 진행합니다.
+
+월드 자체는 전투에 의존하지 않습니다. `turn_battle_base`도 로드할 때만 `rpg__battles`가 `rpg.battle`과 무작위 전투를 제공합니다. 동료는 리더를 따라가며 선택적인 `npc_barks_base`는 동시 배경 대화를 추가합니다.

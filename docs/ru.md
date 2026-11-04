@@ -28,14 +28,14 @@ RPG World превращает игру в RPG на тайловых карта�
 ![После: на той же клетке теперь открытый сундук в рамке маркера взаимодействия; подсказка слева снизу гласит «E / F · Взаимодействовать».](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "В сундуке — старые носки и записка: «Не трогай». Поздно. Под носками — три монеты." key=rpg_demo/chest/house
+ptext "В сундуке — старые носки и записка: «Не трогай». Поздно. Под носками — три монеты." key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ end
 
 - **Form** — `surface` (поверхность), `segment` (кусок ограды, соединяется с соседями), `sprite` (картинка на области клеток: деревья, дома, бочки, двери) или `actor` (персонаж с шагающим спрайтом).
 - **Solid** — блокирует ходьбу. Спрайт блокирует по умолчанию; у триггера нужно `"Solid": false`.
-- **Interact** — `Trigger`: `Use` (E или F, стоя лицом) или `Step` (шаг на клетку); затем одно из `Scenario`, `Commands` (строки языка сценариев) или `Teleport` (`{Map, X, Y, Dir}`).
+- **Interact** — `Trigger`: `Use` (E/F, стоя лицом) или `Step` (при входе). Можно задать `Scenario`, `Commands` или оба: команды выполняются после сценария, в том числе после его `end`. `Teleport` (`{Map, X, Y, Dir}`) выполняется отдельно и пропускает диалоговые команды.
 - **States** — `When` (условие) и что меняется: `Hidden`, другая картинка, `Interact`, `Route`. Действует последнее состояние, чьё `When` выполнено. В расстановке `self.имя` — её собственный флаг `<Id>:имя`.
 - **Route**, **Light** и **Lights** — как прежде (`Steps`, `Every`; свечение с `Radius`, `Color` и смещением `At` в клетках от объекта).
 - **Extends** и **Variants** — наследование от другого объекта и варианты (например, зимний).
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **Монстр или сундук возвращается.** Состояние, которое его прячет или меняет, должно проверять тот флаг, который выставляет его сценарий или `win_flag`.
 3. **Не пройти туда, где вроде бы открыто.** Клетку блокирует твёрдый объект (`Solid`) или `#` в слое коллизий карты.
 4. **Нет фона для боя.** Сцене карты в `scenes/<map>.json` нужен `defaultBackground`.
+
+## События карты и необязательные бои
+
+Невидимая область хранится прямо в `Events` карты: локальный `Id`, `X`, `Y`, `Width`, `Height`, `Trigger`, `When`, `Solid` и либо `Scenario` с `Commands`, либо отдельный `Teleport`. Объект и расстановка не нужны. `self.done` означает `<карта>/<событие>:done`; сохраняйте устойчивый ID. В редакторе карты выберите «Событие», протяните область, введите команды, нажмите «Применить событие» и «Сохранить».
+
+У самого мира нет зависимости от боёв. `rpg.battle` и случайные встречи подключаются только вместе с `turn_battle_base`, через `rpg__battles`. Участники группы идут за лидером; `npc_barks_base` отдельно добавляет параллельные фоновые реплики.

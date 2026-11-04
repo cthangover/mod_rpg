@@ -28,14 +28,14 @@ RPG World は、ゲームをクラシックな 2D RPG の趣のあるタイル�
 ![変更後：同じマスには開いた宝箱が表示され、インタラクションマーカーの枠が付く。左下のヒントは「E / F · Interact」。](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "宝箱の中には古い靴下と「さわるな」と書かれたメモ。もう遅い。靴下の下には硬貨が 3 枚。" key=rpg_demo/chest/house
+ptext "宝箱の中には古い靴下と「さわるな」と書かれたメモ。もう遅い。靴下の下には硬貨が 3 枚。" key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ end
 
 - **Form**: `surface`（地面）、`segment`（柵の 1 区画。隣と繋がる）、`sprite`（セル範囲に描かれる絵：木、家、樽、扉）、`actor`（歩く絵を持つ人物）。
 - **Solid**: 通行を止めるか。sprite は既定で止めます。トリガーには `"Solid": false` が必要です。
-- **Interact**: `Trigger` は `Use`（向いて E または F）か `Step`（そのセルに入る）。続けて `Scenario`、`Commands`（シナリオ言語の行）、`Teleport`（`{Map, X, Y, Dir}`）のどれか。
+- **Interact** — `Trigger` は `Use`（向いて E/F）か `Step`（入ったとき）。`Scenario` と `Commands` は片方または両方を指定でき、コマンドはシナリオの `end` の後にも続けて実行されます。`Teleport`（`{Map, X, Y, Dir}`）は単独で動き、会話コマンドを省きます。
 - **States**: `When`（条件）と変化する内容: `Hidden`、別の絵、`Interact`、`Route`。`When` が成り立つ最後の状態が有効です。配置の中では `self.名前` がその配置自身のフラグ `<Id>:名前` を指します。
 - **Route**、**Light**、**Lights**: 従来どおり（`Steps`、`Every`。光は `Radius`、`Color`、オブジェクトからのセル位置 `At`）。
 - **Extends** と **Variants**: 他のオブジェクトを継承し、版（例: 冬の版）を持ちます。
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **敵や宝箱が戻ってくる。** それを隠すか変える状態の `When` が、シナリオや `win_flag` が立てるフラグを確かめている必要があります。
 3. **開いて見える場所を通れない。** 固いオブジェクト（`Solid`）か、マップの衝突データの `#` がセルを塞いでいます。
 4. **戦闘の背景がない。** マップのシーン `scenes/<map>.json` に `defaultBackground` が必要です。
+
+## マップ所有イベントと任意の戦闘
+
+不可視領域はマップの `Events` に直接保存します。局所 `Id`、`X`、`Y`、`Width`、`Height`、`Trigger`、`When`、`Solid`、そして `Scenario` と `Commands`、または単独の `Teleport` を指定します。オブジェクトや配置は不要です。`self.done` は `<map>/<event>:done` に属するため ID を維持してください。エディターで Event を選び、矩形を描き、コマンドを入力して Apply event、Save を押します。
+
+ワールド自体は戦闘に依存しません。`turn_battle_base` も読み込む場合に限り、`rpg__battles` が `rpg.battle` とランダム戦闘を追加します。仲間はリーダーに追従し、任意の `npc_barks_base` が並行する背景会話を提供します。

@@ -28,14 +28,14 @@ RPG World 把游戏变成经典 2D 角色扮演风格的图块地图 RPG：用�
 ![之后：同一格子现在显示打开的宝箱，并被互动标记框住；左下角提示为"E / F · Interact"。](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "箱子里：旧袜子和一张写着"别碰"的纸条。太迟了。袜子下面有三枚硬币。" key=rpg_demo/chest/house
+ptext "箱子里：旧袜子和一张写着"别碰"的纸条。太迟了。袜子下面有三枚硬币。" key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ end
 
 - **Form**：`surface`（地表）、`segment`（一段栅栏，会与相邻段连接）、`sprite`（覆盖一片格子的图：树、房屋、桶、门）、`actor`（带行走图的人物）。
 - **Solid**：是否阻挡通行。sprite 默认阻挡；触发器需要 `"Solid": false`。
-- **Interact**：`Trigger` 为 `Use`（面向它并按 E 或 F）或 `Step`（踏上格子）；随后是 `Scenario`、`Commands`（剧本语言的行）或 `Teleport`（`{Map, X, Y, Dir}`）之一。
+- **Interact** — `Trigger` 为 `Use`（面向物件按 E/F）或 `Step`（进入区域）。可设置 `Scenario`、`Commands` 或两者：内联命令在脚本后执行，即使脚本以 `end` 结束。`Teleport`（`{Map, X, Y, Dir}`）独立执行并跳过对话命令。
 - **States**：`When`（条件）和改变的内容：`Hidden`、另一张图、`Interact`、`Route`。最后一个 `When` 成立的状态生效。在放置中，`self.名称` 指该放置自己的旗标 `<Id>:名称`。
 - **Route**、**Light**、**Lights**：与以前相同（`Steps`、`Every`；光源有 `Radius`、`Color` 以及相对对象的格子位置 `At`）。
 - **Extends** 与 **Variants**：继承另一个对象，并提供不同版本（例如冬季版）。
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **怪物或宝箱又出现了。** 隐藏或改变它的状态的 `When` 必须检查其剧本或 `win_flag` 设置的旗标。
 3. **无法通过看似开放的地方。** 实体对象（`Solid`）或地图碰撞层中的 `#` 挡住了格子。
 4. **战斗没有背景。** 地图场景 `scenes/<map>.json` 需要 `defaultBackground`。
+
+## 地图事件与可选战斗
+
+不可见区域直接保存在地图的 `Events` 中：局部 `Id`、`X`、`Y`、`Width`、`Height`、`Trigger`、`When`、`Solid`，以及 `Scenario` 加 `Commands`，或独立 `Teleport`。无需对象或放置。`self.done` 属于 `<map>/<event>:done`，请保持 ID 稳定。在编辑器选择 Event，拖出矩形，输入命令，点击 Apply event 和 Save。
+
+世界本身不依赖战斗。只有同时加载 `turn_battle_base` 时，`rpg__battles` 才提供 `rpg.battle` 和随机战斗。队员跟随队长；可选的 `npc_barks_base` 提供并发背景对话。

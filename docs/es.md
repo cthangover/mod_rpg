@@ -28,14 +28,14 @@ El cofre de la casa del anciano es una sola colocación del objeto «cofre», co
 ![Después: la misma casilla muestra ahora el cofre abierto, enmarcado por el marcador de interacción; la ayuda de abajo a la izquierda dice «E / F · Interact».](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "En el cofre: calcetines viejos y una nota que dice "No tocar". Demasiado tarde. Debajo de los calcetines: tres monedas." key=rpg_demo/chest/house
+ptext "En el cofre: calcetines viejos y una nota que dice "No tocar". Demasiado tarde. Debajo de los calcetines: tres monedas." key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ Los objetos se definen en `objects/*.json` (`rpg_object`). Una colocación pone 
 
 - **Form**: `surface` (superficie), `segment` (un trozo de valla que se une a sus vecinos), `sprite` (una imagen sobre un área de celdas: árboles, casas, barriles, puertas) o `actor` (un personaje con su hoja de caminar).
 - **Solid**: bloquea el paso. Un sprite bloquea por defecto; un disparador necesita `"Solid": false`.
-- **Interact**: `Trigger` es `Use` (E o F mirando al objeto) o `Step` (pisar la celda); luego uno de `Scenario`, `Commands` (líneas del lenguaje de escenarios) o `Teleport` (`{Map, X, Y, Dir}`).
+- **Interact** — `Trigger`: `Use` (E/F mirando al objeto) o `Step` (al entrar). Acepta `Scenario`, `Commands` o ambos: las órdenes se ejecutan después del escenario, incluso tras su `end`. `Teleport` (`{Map, X, Y, Dir}`) actúa solo y omite el diálogo.
 - **States**: `When` (una condición) y qué cambia: `Hidden`, otra imagen, `Interact`, `Route`. Se aplica el último estado cuyo `When` se cumpla. En una colocación, `self.nombre` es su propio indicador `<Id>:nombre`.
 - **Route**, **Light** y **Lights**: como antes (`Steps`, `Every`; un resplandor con `Radius`, `Color` y la posición `At` en celdas desde el objeto).
 - **Extends** y **Variants**: heredar de otro objeto y mantener versiones (por ejemplo, una de invierno).
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **Un monstruo o un cofre vuelve.** El estado que lo oculta o lo cambia debe comprobar el indicador que pone su escenario o `win_flag`.
 3. **No puedes pasar por donde parece abierto.** Un objeto sólido (`Solid`) o una `#` en la colisión del mapa bloquea la celda.
 4. **No hay fondo de combate.** La escena del mapa en `scenes/<map>.json` necesita un `defaultBackground`.
+
+## Eventos del mapa y combates opcionales
+
+Las zonas invisibles se guardan en `Events` del mapa: `Id` local, `X`, `Y`, `Width`, `Height`, `Trigger`, `When`, `Solid` y `Scenario` con `Commands` o un `Teleport` independiente. No necesitan objeto ni colocación. `self.done` pertenece a `<map>/<event>:done`; conserve el ID. En el editor elija Event, dibuje el rectángulo, escriba las órdenes, Apply event y Save.
+
+El mundo no depende de combates. `rpg.battle` y los encuentros aleatorios requieren también `turn_battle_base`, mediante `rpg__battles`. El grupo sigue al líder; `npc_barks_base` añade conversaciones de fondo simultáneas.

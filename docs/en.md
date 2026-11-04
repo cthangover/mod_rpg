@@ -28,14 +28,14 @@ The chest in the elder's house is one placement of the chest object, with two st
 ![After: the same cell now shows the open chest, framed by the interaction marker; the hint at the bottom left reads "E / F · Interact".](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "In the chest: old socks and a note saying 'Don't touch'. Too late. Under the socks: three coins." key=rpg_demo/chest/house
+ptext "In the chest: old socks and a note saying 'Don't touch'. Too late. Under the socks: three coins." key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ Objects are defined in `objects/*.json` (`rpg_object`). A placement puts one obj
 
 - **Form** — `surface` (ground), `segment` (a piece of fence that joins its neighbours), `sprite` (a picture over an area of cells: trees, houses, barrels, doors) or `actor` (a character with a walking sheet).
 - **Solid** — blocks walking. A sprite blocks by default; a trigger needs `"Solid": false`.
-- **Interact** — `Trigger` is `Use` (E or F while facing it) or `Step` (stepping onto the cell); then one of `Scenario`, `Commands` (lines of the scenario language) or `Teleport` (`{Map, X, Y, Dir}`).
+- **Interact** — `Trigger` is `Use` (E/F while facing it) or `Step` (on entering). Use `Scenario`, `Commands`, or both: inline commands run after the scenario, including after its `end`. `Teleport` (`{Map, X, Y, Dir}`) runs alone and skips dialog commands.
 - **States** — `When` (a condition) and what changes: `Hidden`, another picture, `Interact`, `Route`. The last state whose `When` holds applies. In a placement, `self.name` is its own flag `<Id>:name`.
 - **Route**, **Light** and **Lights** — as before (`Steps`, `Every`; a glow with `Radius`, `Color` and a cell offset `At` from the object).
 - **Extends** and **Variants** — inherit from another object and keep versions (for example a winter one).
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **A monster or chest comes back.** The state that hides or changes it must test the flag that its scenario or `win_flag` sets.
 3. **You cannot walk somewhere that looks open.** A solid object (`Solid`) or a `#` in the map's collision blocks the cell.
 4. **No battle background.** The map's scene in `scenes/<map>.json` needs a `defaultBackground`.
+
+## Map-owned events and optional battles
+
+Invisible trigger areas live directly in the map's `Events`: local `Id`, `X`, `Y`, `Width`, `Height`, `Trigger`, `When`, `Solid` and either `Scenario` plus `Commands` or a standalone `Teleport`. They need no object or placement. `self.done` belongs to `<map>/<event>:done`; keep the ID stable. In RPG Map Editor choose Event, drag a rectangle, enter commands, Apply event and Save.
+
+The grid world itself has no battle dependency. `rpg.battle` and random encounters appear only when `turn_battle_base` is also loaded, through `rpg__battles`. Party members follow the leader; `npc_barks_base` optionally supplies concurrent background speech.

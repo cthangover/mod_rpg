@@ -28,14 +28,14 @@ Rương trong nhà trưởng làng là một lần đặt vật thể «rương�
 ![Sau: ô cũ giờ hiển thị rương mở, được viền bởi dấu tương tác; gợi ý dưới trái hiện "E / F · Interact".](assets/chest-after.jpg)
 
 ```json
-{"Id": "rpg_elder_house/chest", "Object": "village_pack/container/chest", "X": 9, "Y": 7,
- "Interact": {"Scenario": "rpg_demo/events/house_chest", "Commands": null},
+{"Id": "rpg_elder_house/chest", "Object": "village_pack/chest", "X": 9, "Y": 7,
+ "Interact": {"Scenario": "rpg_plus/events/house_chest", "Commands": null},
  "States$add": [{"Id": "open", "When": "rpg_house_chest == 1",
-                 "Interact": {"Scenario": "rpg_demo/events/chest_empty", "Commands": null}}]}
+                 "Interact": {"Scenario": "rpg_plus/events/chest_empty", "Commands": null}}]}
 ```
 
 ```scenario
-ptext "Trong rương: tất cũ và một mẩu giấy ghi "Đừng động vào". Muộn rồi. Dưới đống tất: ba đồng xu." key=rpg_demo/chest/house
+ptext "Trong rương: tất cũ và một mẩu giấy ghi "Đừng động vào". Muộn rồi. Dưới đống tất: ba đồng xu." key=rpg_plus/chest/house
 action item.add id=money/coin count=3
 flag rpg_house_chest 1
 end
@@ -60,7 +60,7 @@ Vật thể được định nghĩa trong `objects/*.json` (`rpg_object`). Một
 
 - **Form**: `surface` (mặt đất), `segment` (một đoạn hàng rào, nối với đoạn bên cạnh), `sprite` (hình vẽ trên một vùng ô: cây, nhà, thùng, cửa), `actor` (nhân vật có hình đi bộ).
 - **Solid**: có chặn đường đi không. Sprite mặc định chặn; một trigger cần `"Solid": false`.
-- **Interact**: `Trigger` là `Use` (đứng đối diện và nhấn E hoặc F) hoặc `Step` (bước lên ô); sau đó là một trong `Scenario`, `Commands` (dòng ngôn ngữ kịch bản) hoặc `Teleport` (`{Map, X, Y, Dir}`).
+- **Interact** — `Trigger` là `Use` (đối diện và E/F) hoặc `Step` (khi vào). Dùng `Scenario`, `Commands` hoặc cả hai: lệnh chạy sau kịch bản, kể cả sau `end`. `Teleport` (`{Map, X, Y, Dir}`) chạy riêng và bỏ qua lệnh hội thoại.
 - **States**: `When` (điều kiện) và phần thay đổi: `Hidden`, hình khác, `Interact`, `Route`. Trạng thái cuối cùng có `When` đúng sẽ được áp dụng. Trong một lần đặt, `self.tên` là cờ riêng của lần đặt đó: `<Id>:tên`.
 - **Route**, **Light**, **Lights**: như trước (`Steps`, `Every`; ánh sáng có `Radius`, `Color` và vị trí `At` tính bằng ô so với vật thể).
 - **Extends** và **Variants**: kế thừa từ vật thể khác và có các phiên bản (ví dụ bản mùa đông).
@@ -87,3 +87,9 @@ action rpg.teleport map=rpg_forest x=1 y=8 dir=right
 2. **Quái vật hoặc rương quay lại.** `When` của trạng thái ẩn hoặc đổi nó phải kiểm tra cờ mà kịch bản hay `win_flag` đặt.
 3. **Không đi được chỗ trông như mở.** Vật thể rắn (`Solid`) hoặc ký tự `#` trong lớp va chạm của bản đồ đang chặn ô đó.
 4. **Không có nền trận chiến.** Cảnh của bản đồ `scenes/<map>.json` cần `defaultBackground`.
+
+## Sự kiện thuộc bản đồ và chiến đấu tùy chọn
+
+Vùng vô hình được lưu trực tiếp trong `Events` của bản đồ: `Id` cục bộ, `X`, `Y`, `Width`, `Height`, `Trigger`, `When`, `Solid`, cùng `Scenario` và `Commands` hoặc `Teleport` riêng. Không cần đối tượng hay vị trí đặt. `self.done` thuộc `<map>/<event>:done`; giữ ID ổn định. Trong trình sửa, chọn Event, kéo hình chữ nhật, nhập lệnh, Apply event rồi Save.
+
+Thế giới không phụ thuộc chiến đấu. `rpg.battle` và giao chiến ngẫu nhiên chỉ có khi nạp cả `turn_battle_base`, qua `rpg__battles`. Thành viên đi theo thủ lĩnh; `npc_barks_base` tùy chọn thêm các hội thoại nền đồng thời.
