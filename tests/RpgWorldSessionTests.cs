@@ -204,5 +204,35 @@ namespace Cthangover.Mods.Rpg.Tests
             ModAssert.True(normal.Player.IsMoving, "normal step takes more time");
             ModAssert.False(dash.Player.IsMoving, "dash arrives sooner");
         }
+        [ModTest("session/route_absence_respawn_collision_speed_and_json")]
+        static void RouteAbsenceRespawn(ModTestContext ctx)
+        {
+            var route = new RpgMoveRoute { Every = 0.1, Speed = 1.25f, RetryBlocked = true,
+                Steps = new List<string> { "hide", "wait:0.2", "reset", "show", "right", "left" } };
+            var restored = JsonSerializer.Deserialize<RpgMoveRoute>(JsonSerializer.Serialize(route));
+            ModAssert.Equal(route.Speed, restored.Speed, 1e-6f, "speed survives JSON");
+            ModAssert.True(route.RetryBlocked == restored.RetryBlocked, "blocked retry survives JSON");
+            ModAssert.Equal(string.Join(",", route.Steps), string.Join(",", restored.Steps), "all lifecycle steps survive JSON");
+            Objects["crowd_test"] = new RpgObject { ID = "crowd_test", Form = RpgObjectForm.Actor, Route = restored };
+            try
+            {
+                var session = new RpgWorldSessionTests().Create("{\"Id\":\"s/crowd\",\"Object\":\"crowd_test\",\"X\":1,\"Y\":1}");
+                session.Player.Place(new Vector2I(5, 5), RpgDirection.Down);
+                var npc = session.Find("s/crowd");
+                session.Tick(0.11, false);
+                ModAssert.True(!npc.Visible && session.CanEnter(new Vector2I(1, 1)), "departure removes visibility and collision");
+                session.Tick(0.11, false);
+                session.Tick(0.21, false);
+                session.Player.Place(new Vector2I(1, 1), RpgDirection.Down);
+                session.Tick(0.11, false);
+                ModAssert.True(!npc.Visible, "never respawn on the player");
+                session.Player.Place(new Vector2I(5, 5), RpgDirection.Down);
+                session.Tick(0.11, false);
+                ModAssert.True(npc.Visible && !session.CanEnter(new Vector2I(1, 1)), "return restores visibility and collision");
+                session.Tick(0.11, false);
+                ModAssert.True(npc.Actor.IsMoving && npc.Actor.Position.X < 1.5f, "walking uses slow route speed");
+            }
+            finally { Objects.Remove("crowd_test"); }
+        }
     }
 }
