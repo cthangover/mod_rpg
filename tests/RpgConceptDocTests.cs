@@ -36,7 +36,7 @@ namespace Cthangover.Mods.Rpg.Model.Tests
             broken = Break(broken, "\"Image\": \"container/chest_open\"", "\"Image\": \"container/chest_opn\"", "picture 'container/chest_opn'", expected);
             broken = Break(broken, "\"Object\": \"village_pack/npc/merchant\"", "\"Object\": \"village_pack/npc/merchnt\"", "object 'village_pack/npc/merchnt'", expected);
             broken = Break(broken, "\"Facing\": \"Left\"", "\"Facng\": \"Left\"", "'Facng'", expected);
-            broken = Break(broken, "\"Scenario\": \"rpg_plus/events/merchant\"", "\"Scenario\": \"rpg_plus/events/merchnt\"", "scenario 'rpg_plus/events/merchnt'", expected);
+            broken = Break(broken, "\"Scenario\": \"rpg_plus/events/rpg_plus_merchant\"", "\"Scenario\": \"rpg_plus/events/merchnt\"", "scenario 'rpg_plus/events/merchnt'", expected);
             broken = Break(broken, "\"Map\": \"rpg_elder_house\"", "\"Map\": \"rpg_elder_hose\"", "map 'rpg_elder_hose'", expected);
             broken = Break(broken, "\"Trigger\": \"Step\", \"Teleport\"", "\"Trigger\": \"Stepp\", \"Teleport\"", "does not read as", expected);
             broken = Break(broken, "\"Object\": \"village_pack/ground/water\"", "\"Object\": \"village_pack/ground/watr\"", "object 'village_pack/ground/watr'", expected);

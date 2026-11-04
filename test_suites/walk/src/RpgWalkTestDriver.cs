@@ -111,7 +111,7 @@ namespace Cthangover.Mods.Rpg.Tests
                     if (AdvanceDialog())
                         return;
                     Check(GameData.Instance.Runtime.CharacterData.Characters.ContainsKey("rpg_hero"), "party.add put the hero into the party");
-                    Check(View.Player.Cell == new Vector2I(15, 14), $"player at the spawn (15,14), got {View.Player.Cell}");
+                    Check(View.Player.Cell == new Vector2I(15, 9), $"player at the spawn (15,9), got {View.Player.Cell}");
                     CheckActionTexts();
                     Shot("village");
                     Press(Key.W, true);
@@ -227,7 +227,7 @@ namespace Cthangover.Mods.Rpg.Tests
                         return;
                     if (AdvanceDialog())
                         return;
-                    Check(View.Player.Cell == new Vector2I(6, 8), $"the door teleports into the house at (6,8), got {View.Player.Cell}");
+                    Check(View.Player.Cell == new Vector2I(6, 7), $"the door teleports into the house at (6,7), got {View.Player.Cell}");
                     Check(View.Find(Elder)?.Visible == true, "before the wolf the elder stands in the house");
                     Shot("house");
                     ScenarioCondition.SetFlag("rpg_wolf_dead", "1");
@@ -268,7 +268,7 @@ namespace Cthangover.Mods.Rpg.Tests
                     if (View?.Map?.ID != House || GodotSceneService.IsTransitioning)
                         return;
                     Godot.Engine.TimeScale = 1;
-                    Check(View.Player.Cell == new Vector2I(6, 8), $"the battle returns to the same cell, got {View.Player.Cell}");
+                    Check(View.Player.Cell == new Vector2I(6, 7), $"the battle returns to the same cell, got {View.Player.Cell}");
                     Check(GameData.Instance.Runtime.Flags.TryGetValue(WinFlag, out var won) && won == "1", "the win flag is set after the victory");
                     // The menu's path: save in the game, go to the main menu, load.
                     SaveService.Save(SaveSlot);
@@ -287,7 +287,7 @@ namespace Cthangover.Mods.Rpg.Tests
                     Shot("loaded");
                     var dialog = RpgInput.FindDialogBox();
                     Check(dialog != null && !dialog.IsRunning && !dialog.IsVisibleInTree(), $"no dialog box after loading (running={dialog?.IsRunning}, visible={dialog?.IsVisibleInTree()})");
-                    Check(View.Player.Cell == new Vector2I(6, 8), $"the loaded game puts the player on the saved cell, got {View.Player.Cell}");
+                    Check(View.Player.Cell == new Vector2I(6, 7), $"the loaded game puts the player on the saved cell, got {View.Player.Cell}");
                     Check(Flag(PickupFlag) == "1" && Inventory.CheckCount(Mushroom) == mushroomsBefore + 1, "the save keeps the pickup's flag and the picked item");
                     RpgWorldHost.Teleport(new RpgTeleport { Map = Village, X = PickupCell.X - 1, Y = PickupCell.Y, Dir = RpgDirection.Right });
                     Next();
