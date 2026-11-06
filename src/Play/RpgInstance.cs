@@ -52,6 +52,8 @@ namespace Cthangover.Mods.Rpg.Play
 
         /// <summary>Temporary behavior ownership stops new routes; existing steps still arrive.</summary>
         public bool RouteHeld { get; set; }
+        /// <summary>Independent route variation for this placement, shared by all renderers.</summary>
+        public RpgRouteCycle RouteCycle { get; } = new();
 
         /// <summary>Position and movement; <see cref="RpgActorState.Cell"/> is the object origin (top-left footprint cell).</summary>
         public RpgActorState Actor { get; } = new();

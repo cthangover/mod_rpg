@@ -315,19 +315,22 @@ namespace Cthangover.Mods.Rpg.Play
             {
                 var actor = instance.Actor;
                 var route = instance.Current.Route;
-                if (instance.RouteHeld || instance.Current.Hidden || route?.Steps == null || route.Steps.Count == 0 || actor.IsMoving)
+                var steps = instance.RouteCycle.Steps(route, random);
+                if (instance.RouteHeld || instance.Current.Hidden || steps == null || steps.Count == 0 || actor.IsMoving)
                     continue;
                 actor.RouteTimer -= delta;
                 if (actor.RouteTimer > 0)
                     continue;
                 actor.RouteTimer = Math.Max(0.1, route.Every);
-                if (actor.RouteIndex >= route.Steps.Count)
+                if (actor.RouteIndex >= steps.Count)
                 {
                     if (!route.Repeat)
                         continue;
                     actor.RouteIndex = 0;
+                    instance.RouteCycle.Next(random);
+                    steps = instance.RouteCycle.Steps(route, random);
                 }
-                var instruction = route.Steps[actor.RouteIndex++].Trim().ToLowerInvariant();
+                var instruction = steps[actor.RouteIndex++].Trim().ToLowerInvariant();
                 if (instruction == "hide")
                 {
                     instance.RouteHidden = true;

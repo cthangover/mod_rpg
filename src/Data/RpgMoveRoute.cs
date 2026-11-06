@@ -19,6 +19,8 @@ namespace Cthangover.Mods.Rpg
 
         /// <summary>The steps, repeated from the start when <see cref="Repeat"/> is set.</summary>
         public List<string> Steps { get; set; } = new();
+        /// <summary>Alternative complete cycles, shuffled without repeats; empty keeps the legacy Steps route.</summary>
+        public List<List<string>> Variants { get; set; } = new();
 
         /// <summary>Seconds between steps.</summary>
         public double Every { get; set; } = 1.0;
