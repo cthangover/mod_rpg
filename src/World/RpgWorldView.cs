@@ -26,7 +26,7 @@ namespace Cthangover.Mods.Rpg
         private readonly Dictionary<string, List<TileActorPose>> instancePoses = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, RpgObject> shownLooks = new(StringComparer.OrdinalIgnoreCase);
         private readonly RpgTextures textures = new();
-        private readonly TileFrame frame = new();
+        private readonly TileFrame frame = new() { CameraOnArtwork = true };
         private readonly Dictionary<string, TileActorPose> followerPoses = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, TileVisual> followerLooks = new(StringComparer.Ordinal);
         private List<(string Id, string Charset)> party = new();
