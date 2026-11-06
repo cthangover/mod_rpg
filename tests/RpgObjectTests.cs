@@ -103,6 +103,21 @@ namespace Cthangover.Mods.Rpg.Model.Tests
             ModAssert.True(winter.TryGetProperty("Parts$add", out _), "variant operation survives");
         }
 
+        [ModTest("model/picture_scale_round_trip_and_limits")]
+        static void PictureScale(ModTestContext ctx)
+        {
+            ModAssert.Equal(1f, new RpgObject().Scale, 0.00001f, "legacy objects keep their original size");
+            foreach (var value in new[] { 0.01f, 1f, 2.75f, 100f })
+            {
+                var original = new RpgObject { Form = RpgObjectForm.Sprite, Scale = value };
+                var restored = Read(JsonSerializer.Serialize(original));
+                ModAssert.Equal(value, restored.Scale, 0.00001f, "picture scale survives JSON");
+            }
+            ModAssert.Equal(0.01f, new RpgObject { Scale = -2 }.Scale, 0.00001f, "lower limit");
+            ModAssert.Equal(100f, new RpgObject { Scale = 200 }.Scale, 0.00001f, "upper limit");
+            ModAssert.Equal(1f, new RpgObject { Scale = float.NaN }.Scale, 0.00001f, "invalid scale cannot corrupt geometry");
+        }
+
         [ModTest("model/brush_forms_read")]
         static void BrushForms(ModTestContext ctx)
         {

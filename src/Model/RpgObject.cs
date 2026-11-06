@@ -24,6 +24,15 @@ namespace Cthangover.Mods.Rpg.Model
     [EntityKind("rpg_object")]
     public class RpgObject : IIdentifiable
     {
+        private float scale = 1f;
+
+        /// <summary>Picture scale about the object anchor, from 0.01 to 100. Footprint, sorting and grid stay unchanged.</summary>
+        public float Scale
+        {
+            get => scale;
+            set => scale = float.IsFinite(value) ? System.Math.Clamp(value, 0.01f, 100f) : 1f;
+        }
+
         /// <summary><c>&lt;mod or pack&gt;/&lt;category&gt;/&lt;name&gt;</c>.</summary>
         [JsonPropertyName("Id")]
         public string ID { get; set; }

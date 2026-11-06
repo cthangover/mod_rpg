@@ -157,7 +157,7 @@ namespace Cthangover.Mods.Rpg.Render
             }
             var sheet = texture.GetSize();
             var animation = TileWalkSheet.Animation(texture);
-            var size = TileWalkSheet.FrameSize(sheet, animation.Columns) / (tileSize > 0 ? tileSize : 32);
+            var size = TileWalkSheet.FrameSize(sheet, animation.Columns) / (tileSize > 0 ? tileSize : 32) * actor.Scale;
             return new TileVisual
             {
                 Id = actor.ID,
@@ -351,6 +351,14 @@ namespace Cthangover.Mods.Rpg.Render
             }
             if (part.SortOffset is { Length: >= 2 } offset)
                 visual.SortAnchor = visual.Anchor + new Vector2(offset[0], offset[1]);
+            visual.Bounds = new Rect2(anchor + (visual.Bounds.Position - anchor) * sprite.Scale,
+                visual.Bounds.Size * sprite.Scale);
+            if (visual.WorldQuad != null)
+            {
+                var pivot = new Vector3(anchor.X, anchor.Y, 0);
+                for (var k = 0; k < visual.WorldQuad.Length; k++)
+                    visual.WorldQuad[k] = pivot + (visual.WorldQuad[k] - pivot) * sprite.Scale;
+            }
             return visual;
         }
 

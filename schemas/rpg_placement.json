@@ -254,6 +254,11 @@
               "Type": "json"
             }
           ]
+        },
+        {
+          "Key": "Scale",
+          "Type": "number",
+          "Default": "1"
         }
       ]
     }

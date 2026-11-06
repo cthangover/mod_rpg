@@ -222,6 +222,54 @@ namespace Cthangover.Mods.Rpg.Render.Tests
             }
         }
 
+        [ModTest("render/picture_scale_preserves_anchor_grid_and_source")]
+        static void PictureScale(ModTestContext ctx)
+        {
+            var owned = new List<Texture2D>();
+            try
+            {
+                using var builder = Builder(owned);
+                var (map, cells, objects) = Fixture();
+                foreach (var id in new[] { "t/tree", "t/room", "t/gate", "t/barrel" })
+                {
+                    var obj = objects[id];
+                    var original = builder.PartLooks(obj, 32);
+                    var pivot = obj.Anchor is { Length: 2 } at ? new Vector2(at[0], at[1])
+                        : new Vector2(obj.Width / 2f, obj.Height);
+                    foreach (var scale in new[] { 0.01f, 2.5f, 100f })
+                    {
+                        obj.Scale = scale;
+                        var scaled = builder.PartLooks(obj, 32);
+                        for (var i = 0; i < original.Count; i++)
+                        {
+                            ModAssert.True(scaled[i].Bounds.Size.IsEqualApprox(original[i].Bounds.Size * scale), id + ": every part scales");
+                            ModAssert.True(scaled[i].Bounds.Position.IsEqualApprox(pivot + (original[i].Bounds.Position - pivot) * scale), id + ": stable picture pivot");
+                            ModAssert.True(scaled[i].Anchor == original[i].Anchor && scaled[i].SortAnchor == original[i].SortAnchor, id + ": sort anchors stay fixed");
+                            ModAssert.True(scaled[i].Source == original[i].Source, id + ": source crop is unchanged");
+                            if (original[i].WorldQuad == null) continue;
+                            var anchor = new Vector3(pivot.X, pivot.Y, 0);
+                            for (var k = 0; k < 4; k++)
+                                ModAssert.True(scaled[i].WorldQuad[k].IsEqualApprox(anchor + (original[i].WorldQuad[k] - anchor) * scale), id + ": world quad scales");
+                        }
+                    }
+                    ModAssert.Equal(id == "t/room" ? 3 : id == "t/barrel" ? 1 : 2, obj.Width, "footprint stays unchanged");
+                }
+                var npc = objects["t/npc"];
+                var normal = builder.ActorLook(npc, 32);
+                npc.Scale = 2.5f;
+                var enlarged = builder.ActorLook(npc, 32);
+                ModAssert.True(enlarged.Bounds.Size.IsEqualApprox(normal.Bounds.Size * 2.5f), "actor picture scales");
+                ModAssert.True(enlarged.Anchor == normal.Anchor && enlarged.Source == normal.Source, "actor frame and feet stay fixed");
+                var rendered = builder.Build(map, cells, Statics(objects));
+                ModAssert.True(rendered.Size == new Vector2I(8, 6) && rendered.TileSize == 32, "sprite scale leaves grid alone");
+                rendered.Release();
+            }
+            finally
+            {
+                foreach (var texture in owned) texture.Dispose();
+            }
+        }
+
         private static void Collect(Node node, List<TileCanvasSprite> into)
         {
             foreach (var child in node.GetChildren())
