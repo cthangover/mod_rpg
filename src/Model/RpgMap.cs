@@ -76,7 +76,7 @@ namespace Cthangover.Mods.Rpg.Model
         /// <summary>Atmosphere profile id; empty keeps interiors still.</summary>
         public string Atmosphere { get; set; }
 
-        /// <summary>Fixed light colour (<c>#rrggbb</c>); null = the time of day.</summary>
+        /// <summary>Daylight tint (<c>#rrggbb</c>) of a <c>cycle</c> map: multiplies the time-of-day colour, so night still falls; null = untinted.</summary>
         public string Ambient { get; set; }
 
         /// <summary>Additional whole-map atmosphere profiles and painted masks.</summary>
