@@ -188,7 +188,13 @@ namespace Cthangover.Mods.Rpg.Render.Tests
                 using var builder = Builder(owned);
                 var (map, cells, objects) = Fixture();
                 var scene = builder.Build(map, cells, Statics(objects));
-                foreach (var (renderer, expected) in new[] { ("topdown", 11), ("isometric", 12) })
+                // Charset feet use the square's bottom edge in topdown and the diamond's centre in isometric.
+                // Explicit ground points keep this independent of the ActorAnchor implementation under test.
+                foreach (var (renderer, expected, actorStand) in new[]
+                {
+                    ("topdown", 11, new Vector3(3.5f, 2, 0)),
+                    ("isometric", 12, new Vector3(3.5f, 1.5f, 0)),
+                })
                 {
                     var factory = TileRendererRegistry.Instance.Resolve(renderer);
                     var projection = factory.Projection(scene.TileSize);
@@ -208,7 +214,7 @@ namespace Cthangover.Mods.Rpg.Render.Tests
                         Look = builder.PartLooks(objects["t/barrel"], scene.TileSize)[0] });
                     view.Present(frame, 0);
                     var actors = view.Root.GetNode("Actors");
-                    ModAssert.True(actors.GetChildren().OfType<TileCanvasSprite>().Any(s => s.Position.DistanceTo(projection.Project(new Vector3(3.5f, 2, 0))) < 0.01f),
+                    ModAssert.True(actors.GetChildren().OfType<TileCanvasSprite>().Any(s => s.Position.DistanceTo(projection.Project(actorStand)) < 0.01f),
                         renderer + ": the actor stands on its cell");
                     ModAssert.True(actors.GetChildren().OfType<TileCanvasSprite>().Any(s => s.Position.DistanceTo(projection.Project(new Vector3(4.5f, 2, 0))) < 0.01f),
                         renderer + ": the dynamic barrel stands on its cell");
