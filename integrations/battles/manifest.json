@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "author": "ct",
   "description": "Glue of the rpg world with turn-based battles, mounted only in a game that has both: random encounters on the steps of a map (its Encounters field) and the rpg.battle action, a battle that returns to the map cell and can set a win flag. Without turn_battle_base the world walks, collides, talks and teleports, and nothing starts a battle. Holds no content and no save data.",
-  "category": "gameplay",
+  "categories": ["gameplay"],
   "sources": [
     "src/**/*.cs"
   ],
