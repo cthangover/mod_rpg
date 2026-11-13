@@ -33,6 +33,9 @@ namespace Cthangover.Mods.Rpg.Tests
     /// </summary>
     public partial class RpgWalkTestDriver : Node
     {
+        private int readinessToken = int.MinValue;
+        private ulong readinessStarted;
+        private ulong readinessFrame;
         private const float TickSeconds = 0.1f;
 
         // The battle opens with an intro animation (the backdrop zooms in): shots wait it out.
@@ -94,6 +97,23 @@ namespace Cthangover.Mods.Rpg.Tests
                 Fail($"step {step}: {ex.GetType().Name}: {ex.Message}");
                 Finish();
             }
+        }
+
+        // Deferred UI/scene work must finish before the original assertions run.
+        private bool WaitForReadyFrames(int token, bool ready, double timeoutSeconds = 30)
+        {
+            var now = global::Godot.Time.GetTicksMsec();
+            if (readinessToken != token)
+            {
+                readinessToken = token;
+                readinessStarted = now;
+                readinessFrame = 0;
+            }
+            if (now - readinessStarted > timeoutSeconds * 1000)
+                throw new global::System.TimeoutException($"readiness at step {token}: scene/UI did not become ready");
+            if (!ready) { readinessFrame = 0; return false; }
+            if (readinessFrame == 0) readinessFrame = global::Godot.Engine.GetProcessFrames();
+            return global::Godot.Engine.GetProcessFrames() - readinessFrame >= 2;
         }
 
         private void RunStep()
@@ -276,13 +296,13 @@ namespace Cthangover.Mods.Rpg.Tests
                     Next();
                     return;
                 case 22:
-                    if (RpgWorldHost.Current != null || ++waitTicks < 5)
+                    if (RpgWorldHost.Current != null || !WaitForReadyFrames(step, true))
                         return;
                     Check(GameSession.LoadAndEnter(this, SaveSlot), "the save loads");
                     Next();
                     return;
                 case 23:
-                    if (View?.Map?.ID != House || GodotSceneService.IsTransitioning || ++waitTicks < 5)
+                    if (View?.Map?.ID != House || GodotSceneService.IsTransitioning || !WaitForReadyFrames(step, !View.Player.IsMoving))
                         return;
                     Shot("loaded");
                     var dialog = RpgInput.FindDialogBox();

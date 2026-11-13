@@ -49,6 +49,8 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
         private int passed;
         private double elapsed;
         private bool done;
+        private ulong idleWaitStarted;
+        private ulong idleFrame;
 
         /// <summary>Creates the driver; <paramref name="shotsDir"/> null disables screenshots.</summary>
         public RpgPartyWalkTestDriver(string shotsDir)
@@ -95,10 +97,10 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
             Do(() => { arrivals.Clear(); gatherCell = WalkStart; });
             Do(() => Check(Follower0?.Cell == WalkStart, "the follower gathers on the hero when the hero is placed"));
             Hold(Key.D, () => arrivals.Count >= 3, "three steps right");
-            Settle(25);
+            WaitForPartyIdle();
             Do(() => CheckTrail("after three steps right"));
             Hold(Key.S, () => arrivals.Count >= 5, "two steps down");
-            Settle(25);
+            WaitForPartyIdle();
             Do(() => CheckTrail("after the turn down"));
             Do(() => Shot("trail"));
 
@@ -112,7 +114,7 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
             });
             Until(() => arrivals.Count >= reverseFrom + 2, "the hero walks back through the follower", 120);
             Do(() => Press(reverseKey, false));
-            Settle(25);
+            WaitForPartyIdle();
             Do(() => CheckTrail("after walking back through the follower"));
             Do(() => Check(arrivals.Count >= reverseFrom + 2, "the hero passed the follower's cell"));
 
@@ -142,7 +144,7 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
             Do(() => Check(RpgPartyLook.Followers().Any(f => f.Id == NoCharset && f.Charset == null), "the follower without a sheet is kept without one"));
             Do(() => { arrivals.Clear(); gatherCell = View.Player.Cell; });
             Hold(Key.D, () => arrivals.Count >= 2, "a step right with two followers");
-            Settle(25);
+            WaitForPartyIdle();
             Do(() => CheckTrail("with the follower without a sheet"));
             Do(() => Shot("charset_less"));
             Do(() => GameLogger.LogEmitted -= OnLog);
@@ -216,11 +218,31 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
             });
         }
 
-        private void Settle(int ticks)
+        // Key release does not cancel the current step. Wait for the hero and every follower,
+        // then allow two actual simulation frames before the unchanged trail assertions.
+        private void WaitForPartyIdle() => steps.Enqueue(PartyIsIdle);
+
+        private bool PartyIsIdle()
         {
-            var waited = 0;
-            steps.Enqueue(() => ++waited >= ticks);
+            var now = Time.GetTicksMsec();
+            if (idleWaitStarted == 0)
+                idleWaitStarted = now;
+            if (now - idleWaitStarted > 10000)
+                throw new TimeoutException("hero/followers did not finish moving after key release");
+            if (View?.Player.IsMoving != false || View.Session.Followers.Members.Any(FollowerIsMoving))
+            {
+                idleFrame = 0;
+                return false;
+            }
+            if (idleFrame == 0)
+                idleFrame = Engine.GetProcessFrames();
+            if (Engine.GetProcessFrames() - idleFrame < 2)
+                return false;
+            idleWaitStarted = idleFrame = 0;
+            return true;
         }
+
+        private static bool FollowerIsMoving(RpgFollower follower) => follower.Actor.IsMoving;
 
         // Holds a key until the condition holds, then releases it.
         private void Hold(Key key, Func<bool> until, string what)
