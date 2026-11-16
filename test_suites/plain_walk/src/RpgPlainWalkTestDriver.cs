@@ -76,7 +76,7 @@ namespace Cthangover.Mods.Rpg.PlainWalkTests
             {
                 case 0:
                     // The game's entry scene comes first (--new); the map is entered from it, as a modder's scene switch would.
-                    var sceneManager = ((SceneTree)Engine.GetMainLoop()).Root.GetNodeOrNull<SceneManager>("SceneManager");
+                    var sceneManager = ((SceneTree)Godot.Engine.GetMainLoop()).Root.GetNodeOrNull<SceneManager>("SceneManager");
                     if (!Boot.IsReady || sceneManager == null || string.IsNullOrEmpty(sceneManager.CurrentSceneName) || GodotSceneService.IsTransitioning)
                         return;
                     // The template's opening dialog is still running when the map is entered: the scene switch in the middle
@@ -145,7 +145,7 @@ namespace Cthangover.Mods.Rpg.PlainWalkTests
             }
         }
 
-        private static string SceneNow() => ((SceneTree)Engine.GetMainLoop()).Root.GetNodeOrNull<SceneManager>("SceneManager")?.CurrentSceneName;
+        private static string SceneNow() => ((SceneTree)Godot.Engine.GetMainLoop()).Root.GetNodeOrNull<SceneManager>("SceneManager")?.CurrentSceneName;
 
         private bool AdvanceDialog()
         {

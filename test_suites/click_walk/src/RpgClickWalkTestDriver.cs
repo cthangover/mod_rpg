@@ -299,7 +299,7 @@ namespace Cthangover.Mods.Rpg.ClickWalkTests
 
         private static async Task Frames(int count)
         {
-            var tree = (SceneTree)Engine.GetMainLoop();
+            var tree = (SceneTree)Godot.Engine.GetMainLoop();
             for (var frame = 0; frame < count; frame++)
             {
                 await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);

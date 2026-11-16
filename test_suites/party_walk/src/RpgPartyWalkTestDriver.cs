@@ -235,8 +235,8 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
                 return false;
             }
             if (idleFrame == 0)
-                idleFrame = Engine.GetProcessFrames();
-            if (Engine.GetProcessFrames() - idleFrame < 2)
+                idleFrame = Godot.Engine.GetProcessFrames();
+            if (Godot.Engine.GetProcessFrames() - idleFrame < 2)
                 return false;
             idleWaitStarted = idleFrame = 0;
             return true;
@@ -310,7 +310,7 @@ namespace Cthangover.Mods.Rpg.PartyWalkTests
         // Advances the shell's dialog-free path: the prologue's choices take their first answer.
         private static bool SkipPrologue()
         {
-            var scene = ((SceneTree)Engine.GetMainLoop()).Root.GetNodeOrNull<SceneManager>("SceneManager")?.CurrentSceneName;
+            var scene = ((SceneTree)Godot.Engine.GetMainLoop()).Root.GetNodeOrNull<SceneManager>("SceneManager")?.CurrentSceneName;
             if (string.IsNullOrEmpty(scene) || RpgWorldHost.Current?.View?.Map != null)
                 return false;
             var box = RpgInput.FindDialogBox();

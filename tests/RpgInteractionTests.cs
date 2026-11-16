@@ -141,7 +141,7 @@ namespace Cthangover.Mods.Rpg.Play.Tests
         static async Task TwoBarrels(ModTestContext ctx)
         {
             var host = new Control { Name = "RpgInteractionTestHost" };
-            var tree = (SceneTree)Engine.GetMainLoop();
+            var tree = (SceneTree)Godot.Engine.GetMainLoop();
             tree.Root.AddChild(host);
             var box = new ModScenePrefab("scenes/ui/dialog_box.tscn").Instantiate<DialogBox>();
             ModAssert.NotNull(box, "dialog box prefab");
