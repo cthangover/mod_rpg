@@ -1,0 +1,73 @@
+{
+  "Kind": "rpg_map",
+  "Items": [
+    {
+      "Id": "rpg_click_fixture",
+      "Width": 9,
+      "Height": 7,
+      "TileSize": 32,
+      "Zoom": 2,
+      "Spawn": {
+        "X": 1,
+        "Y": 2,
+        "Dir": "Right"
+      },
+      "Ambient": "#ffffff",
+      "LightMode": "day",
+      "Legend": {
+        "g": "village_pack/ground/grass",
+        "e": "village_pack/structure/fence_wood"
+      },
+      "Ground": [
+        "ggggggggg",
+        "ggggggggg",
+        "ggggggggg",
+        "ggggggggg",
+        "ggggggggg",
+        "ggggggggg",
+        "ggggggggg"
+      ],
+      "Structure": [
+        ".........",
+        ".........",
+        "...e.....",
+        ".........",
+        ".........",
+        ".........",
+        "........."
+      ],
+      "Collision": [
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        "........."
+      ],
+      "Events": [
+        {
+          "Id": "step_target",
+          "X": 6,
+          "Y": 2,
+          "Trigger": "Step",
+          "Commands": [
+            "flag self.reached 1",
+            "end"
+          ]
+        },
+        {
+          "Id": "use_target",
+          "X": 6,
+          "Y": 3,
+          "Solid": true,
+          "Trigger": "Use",
+          "Commands": [
+            "flag self.used 1",
+            "end"
+          ]
+        }
+      ]
+    }
+  ]
+}

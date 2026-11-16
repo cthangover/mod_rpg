@@ -1,0 +1,11 @@
+{
+  "name": "Cardinal click-walk native contracts",
+  "sources": [
+    "src/*.cs"
+  ],
+  "depends": [
+    "rpg_editor>=0.1.0",
+    "village_pack>=0.1.0",
+    "rpg_plus_game>=0.1.0"
+  ]
+}

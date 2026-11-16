@@ -1,0 +1,19 @@
+{
+  "Kind": "character",
+  "Items": [
+    {
+      "Id": "click_walk_follower",
+      "Name": "click_walk/follower",
+      "Charset": "village/villager",
+      "Image": "characters/village/hero",
+      "Level": 1,
+      "Point": 1,
+      "Health": 10,
+      "Defence": 0,
+      "Attack": 2,
+      "Actions": [
+        "physics/attack"
+      ]
+    }
+  ]
+}

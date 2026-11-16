@@ -3,8 +3,10 @@
   "name": "RPG World",
   "version": "0.1.0",
   "author": "ct",
-  "description": "A walkable tile world in the spirit of RPG Maker: grid movement with WASD, events on E/F, teleports; a map is an ordinary scene of the game. Battles and random encounters come with turn_battle_base through the battles integration, so the world runs without it.",
-  "categories": ["gameplay"],
+  "description": "A walkable tile world with keyboard and optional cardinal click movement, interactions and map scenes. Battles and encounters are supplied by an optional integration.",
+  "categories": [
+    "gameplay"
+  ],
   "sources": [
     "src/**/*.cs"
   ],
@@ -20,7 +22,12 @@
     "tile_render_base>=0.1.0"
   ],
   "integrations": [
-    { "id": "battles", "with": [ "turn_battle_base" ] }
+    {
+      "id": "battles",
+      "with": [
+        "turn_battle_base"
+      ]
+    }
   ],
   "test_suites": [
     {
@@ -51,6 +58,12 @@
       "id": "party_walk",
       "activate": [
         "--itest=rpg_party_walk"
+      ]
+    },
+    {
+      "id": "click_walk",
+      "activate": [
+        "--itest=rpg_click_walk"
       ]
     }
   ]
