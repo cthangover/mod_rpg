@@ -8,7 +8,7 @@ It powers the village, forest and desert of **RPG Plus**. The maps and people th
 
 ## How to play on a map
 
-- **Walk** with WASD or the arrow keys; hold **Shift** to run.
+- **Walk** with WASD or the arrow keys; hold **Shift** to run. Left-click a free cell to set a walking goal.
 - **Act** with **E** or **F**: talk to the person you face, open the chest, read the sign.
 - **Step** onto a doorway or a map edge to go to the next map.
 - **Random battles** can start as you walk in some places, such as the forest.
@@ -16,6 +16,22 @@ It powers the village, forest and desert of **RPG Plus**. The maps and people th
 - The game saves where you stand; loading puts you back there.
 
 The cell you can act on is framed, and the hint at the bottom left changes to **E / F · Interact**.
+
+## Walk with a left click
+
+The keyboard remains the primary control. As an alternative, **left-click a free map cell** to have the hero find and follow a route through neighbouring cells. This works in top-down and isometric views. Another click replaces the current goal.
+
+**WASD or arrow keys** hand walking back to the keyboard; **E / F** and **Esc** cancel the remaining route. A step already in progress can finish before the direction changes. Companions follow by the same rules as with keyboard walking.
+
+Clicking a chest, NPC or another occupied cell does not replace interaction. Choose a free adjacent cell, face the object and press **E / F**. A **Step** event on the chosen route still triggers on ordinary entry, including a doorway or map transition.
+
+The hint reports searching, walking, an occupied goal, no route or the search limit. The hero rechecks the route when obstacles change. If a route cannot be confirmed, the hero does not walk straight through an obstacle: choose another or nearer cell, or continue with the keyboard.
+
+![The hero has reached a free cell after a left click; keyboard walking and E / F remain available.](assets/iso2d-click-arrived-en.png)
+
+Clicks in an open window, menu or interface do not select a map goal behind it. A blocking dialog, pause, loss of focus or map change cancels the active route. Set a new goal after closing the window or returning to the game. Saves retain the hero's position, not an unfinished walking goal; loading does not resume the old route automatically.
+
+![An occupied cell was selected: the hint explains the refusal and the hero remains outside the obstacle.](assets/iso2d-click-blocked-en.png)
 
 ## Example: a chest that stays open
 
