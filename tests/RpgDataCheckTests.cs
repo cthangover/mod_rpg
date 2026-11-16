@@ -51,6 +51,8 @@ namespace Cthangover.Mods.Rpg.Tests
         {
             var surface = JsonNode.Parse("{\"Form\":\"surface\",\"Surface\":{\"Image\":\"prop\"}}").AsObject();
             ModAssert.Equal(0, RpgDataCheck.Object(surface, "topdown", 128, Size).Count, "matching square material");
+            ModAssert.Equal(0, RpgDataCheck.Object(surface, "topdown", 0, Size).Count,
+                "an object without a map context accepts a square without inventing its PatchSize");
             ModAssert.True(Contains(RpgDataCheck.Object(surface, "isometric", 512, Size), "material", "Surface.Image"),
                 "material follows the map patch size rather than tile size");
             var data = JsonNode.Parse(Sprite).AsObject();

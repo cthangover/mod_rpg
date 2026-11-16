@@ -101,16 +101,19 @@ namespace Cthangover.Mods.Rpg.Validation
             Vector(data, "Anchor", "Anchor");
             if (data["Scale"] != null && (!RpgDataValue.Number(data["Scale"], out var scale) || scale < 0.01 || scale > 100))
             {
-                Add("scale", "Scale", data["Scale"].ToString());
+                Add("scale", "Scale", data["Scale"].ToJsonString());
             }
 
             Order(data["DrawOrder"], "DrawOrder");
             if (form?.Equals("surface", StringComparison.OrdinalIgnoreCase) == true)
             {
                 var size = Image(data["Surface"]?["Image"], "Surface.Image", "rpg_images");
-                if (size != null && (size.Value.X != patchSize || size.Value.Y != patchSize))
+                if (size != null && (size.Value.X != size.Value.Y
+                    || patchSize > 0 && (size.Value.X != patchSize || size.Value.Y != patchSize)))
                 {
-                    Add("material", "Surface.Image", size.Value.X + "×" + size.Value.Y + "; " + patchSize + "×" + patchSize);
+                    var detail = size.Value.X + "×" + size.Value.Y
+                        + (patchSize > 0 ? "; " + patchSize + "×" + patchSize : "");
+                    Add("material", "Surface.Image", detail);
                 }
             }
 
@@ -170,7 +173,7 @@ namespace Cthangover.Mods.Rpg.Validation
             Vector(part, "SortOffset", path + ".SortOffset");
             if (part["Size"] != null && !RpgDataValue.Vector(part["Size"], 2, true))
             {
-                Add("size", path + ".Size", part["Size"].ToString());
+                Add("size", path + ".Size", part["Size"].ToJsonString());
             }
 
             Order(part["DrawOrder"], path + ".DrawOrder");
@@ -280,7 +283,7 @@ namespace Cthangover.Mods.Rpg.Validation
         {
             if (node[field] != null && !RpgDataValue.Vector(node[field], 2))
             {
-                Add("vector", path, node[field].ToString());
+                Add("vector", path, node[field].ToJsonString());
             }
         }
 
