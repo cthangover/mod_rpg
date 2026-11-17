@@ -1,10 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json.Nodes;
-using Godot;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text.Json.Nodes;
+    using Godot;
+
     /// <summary>Pure checks over an effective JSON object; image sizes are borrowed metadata, never GPU textures or owned images.</summary>
     public sealed class RpgDataCheck
     {
@@ -61,7 +61,7 @@ namespace Cthangover.Mods.Rpg.Validation
 
             if (depth > 32)
             {
-                Add("budget", prefix, null);
+                Add(RpgDataRules.Budget, prefix, null);
                 return;
             }
 
@@ -95,13 +95,13 @@ namespace Cthangover.Mods.Rpg.Validation
             var form = RpgDataValue.Text(data["Form"]);
             if ((!partial || data["Form"] != null) && !Named(form, "surface", "segment", "sprite", "actor"))
             {
-                Add("enum", "Form", data["Form"]?.ToString());
+                Add(RpgDataRules.Enum, "Form", data["Form"]?.ToString());
             }
 
             Vector(data, "Anchor", "Anchor");
             if (data["Scale"] != null && (!RpgDataValue.Number(data["Scale"], out var scale) || scale < 0.01 || scale > 100))
             {
-                Add("scale", "Scale", data["Scale"].ToJsonString());
+                Add(RpgDataRules.Scale, "Scale", data["Scale"].ToJsonString());
             }
 
             Order(data["DrawOrder"], "DrawOrder");
@@ -113,7 +113,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 {
                     var detail = size.Value.X + "×" + size.Value.Y
                         + (patchSize > 0 ? "; " + patchSize + "×" + patchSize : "");
-                    Add("material", "Surface.Image", detail);
+                    Add(RpgDataRules.Material, "Surface.Image", detail);
                 }
             }
 
@@ -124,7 +124,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 if (segment?["Height"] != null
                     && (!RpgDataValue.Number(segment["Height"], out var height) || height <= 0))
                 {
-                    Add("size", "Segment.Height", segment["Height"].ToString());
+                    Add(RpgDataRules.Size, "Segment.Height", segment["Height"].ToString());
                 }
 
                 Enum(segment?["Along"], "Segment.Along", "auto", "x", "y");
@@ -135,7 +135,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 var size = Image(data["Charset"], "Charset", "charsets");
                 if (size != null && (size.Value.Y % 4 != 0 || size.Value.X <= 0))
                 {
-                    Add("sheet", "Charset", size.Value.X + "×" + size.Value.Y);
+                    Add(RpgDataRules.Sheet, "Charset", size.Value.X + "×" + size.Value.Y);
                 }
             }
 
@@ -148,14 +148,14 @@ namespace Cthangover.Mods.Rpg.Validation
                     var path = partsField + "[" + i + "]";
                     if (parts[i] is not JsonObject part)
                     {
-                        Add("part", path, null);
+                        Add(RpgDataRules.Part, path, null);
                         continue;
                     }
 
                     var id = RpgDataValue.Text(part["Id"]);
                     if (!string.IsNullOrEmpty(id) && !ids.Add(id))
                     {
-                        Add("duplicate_part", path + ".Id", id);
+                        Add(RpgDataRules.DuplicatePart, path + ".Id", id);
                     }
 
                     CheckPart(part, path);
@@ -163,7 +163,7 @@ namespace Cthangover.Mods.Rpg.Validation
             }
             else if (data[partsField] != null)
             {
-                Add("part", partsField, null);
+                Add(RpgDataRules.Part, partsField, null);
             }
         }
 
@@ -173,7 +173,7 @@ namespace Cthangover.Mods.Rpg.Validation
             Vector(part, "SortOffset", path + ".SortOffset");
             if (part["Size"] != null && !RpgDataValue.Vector(part["Size"], 2, true))
             {
-                Add("size", path + ".Size", part["Size"].ToJsonString());
+                Add(RpgDataRules.Size, path + ".Size", part["Size"].ToJsonString());
             }
 
             Order(part["DrawOrder"], path + ".DrawOrder");
@@ -182,7 +182,7 @@ namespace Cthangover.Mods.Rpg.Validation
             var only = RpgDataValue.Text(part["Only"]);
             if (part["Only"] != null && !Named(only, "topdown", "isometric"))
             {
-                Add("projection", path + ".Only", only);
+                Add(RpgDataRules.Projection, path + ".Only", only);
             }
 
             if (string.Equals(RpgDataValue.Text(part["Geometry"]), "quad", StringComparison.OrdinalIgnoreCase))
@@ -206,7 +206,7 @@ namespace Cthangover.Mods.Rpg.Validation
         {
             if (node is not JsonArray array || array.Count != 4)
             {
-                Add("quad_count", path, null);
+                Add(RpgDataRules.QuadCount, path, null);
                 return;
             }
 
@@ -215,7 +215,7 @@ namespace Cthangover.Mods.Rpg.Validation
             {
                 if (!RpgDataValue.Vector(item, 3))
                 {
-                    Add("quad_number", path, null);
+                    Add(RpgDataRules.QuadNumber, path, null);
                     return;
                 }
 
@@ -239,7 +239,7 @@ namespace Cthangover.Mods.Rpg.Validation
         {
             if (!RpgDataValue.Vector(node, 4))
             {
-                Add("crop", path, null);
+                Add(RpgDataRules.Crop, path, null);
                 return;
             }
 
@@ -249,7 +249,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 RpgDataValue.Number(node[i], out values[i]);
                 if (values[i] != Math.Truncate(values[i]))
                 {
-                    Add("crop", path, null);
+                    Add(RpgDataRules.Crop, path, null);
                     return;
                 }
             }
@@ -257,7 +257,7 @@ namespace Cthangover.Mods.Rpg.Validation
             if (values[0] < 0 || values[1] < 0 || values[2] <= 0 || values[3] <= 0
                 || size != null && (values[0] + values[2] > size.Value.X || values[1] + values[3] > size.Value.Y))
             {
-                Add("crop", path, node.ToJsonString());
+                Add(RpgDataRules.Crop, path, node.ToJsonString());
             }
         }
 
@@ -272,7 +272,7 @@ namespace Cthangover.Mods.Rpg.Validation
             var size = string.IsNullOrWhiteSpace(id) ? null : sizes?.Invoke(group, id);
             if (size == null || size.Value.X <= 0 || size.Value.Y <= 0)
             {
-                Add("image", path, id);
+                Add(RpgDataRules.Image, path, id);
                 return null;
             }
 
@@ -283,7 +283,7 @@ namespace Cthangover.Mods.Rpg.Validation
         {
             if (node[field] != null && !RpgDataValue.Vector(node[field], 2))
             {
-                Add("vector", path, node[field].ToJsonString());
+                Add(RpgDataRules.Vector, path, node[field].ToJsonString());
             }
         }
 
@@ -306,7 +306,7 @@ namespace Cthangover.Mods.Rpg.Validation
 
             if (!Named(RpgDataValue.Text(node), values))
             {
-                Add("enum", path, node.ToString());
+                Add(RpgDataRules.Enum, path, node.ToString());
             }
         }
 

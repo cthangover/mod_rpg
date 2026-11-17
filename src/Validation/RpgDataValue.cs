@@ -1,10 +1,10 @@
-using System;
-using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System;
+    using System.Globalization;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+
     /// <summary>Reads authored JSON without coercing numeric strings or applying normalizing DTO setters.</summary>
     internal static class RpgDataValue
     {

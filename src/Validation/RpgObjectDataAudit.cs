@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using Cthangover.Core.Utils;
-using Cthangover.Mods.Rpg.Model;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+    using Cthangover.Core.Utils;
+    using Cthangover.Mods.Rpg.Model;
+
     /// <summary>
     /// Visits effective variants and each independently applied state using the runtime resolver, without evaluating
     /// gameplay.
@@ -82,7 +82,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 {
                     Attach(new RpgDataIssue
                     {
-                        Code = "sheet",
+                        Code = RpgDataRules.Sheet,
                         Field = "Charset",
                         Detail = detail,
                     }, value.ID, context);

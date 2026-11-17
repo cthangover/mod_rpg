@@ -1,15 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using Cthangover.Core.Mods;
-using Cthangover.Core.Mods.Resolvers;
-using Cthangover.Core.Utils;
-using Cthangover.Mods.TileRender;
-using Godot;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text.Json;
+    using Cthangover.Core.Mods;
+    using Cthangover.Core.Mods.Resolvers;
+    using Cthangover.Core.Utils;
+    using Cthangover.Mods.TileRender;
+    using Godot;
+
     /// <summary>Per-audit image dimensions and sidecars; decoded images are disposed immediately and never uploaded to the GPU.</summary>
     public sealed class RpgValidationImages
     {

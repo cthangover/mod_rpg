@@ -1,12 +1,12 @@
-using System.Collections.Generic;
-using System.Text.Json;
-using Cthangover.Core.Mods.Testing;
-using Cthangover.Core.Utils;
-using Cthangover.Mods.Rpg.Model;
-using Cthangover.Mods.Rpg.Validation;
-
 namespace Cthangover.Mods.Rpg.Tests
 {
+    using System.Collections.Generic;
+    using System.Text.Json;
+    using Cthangover.Core.Mods.Testing;
+    using Cthangover.Core.Utils;
+    using Cthangover.Mods.Rpg.Model;
+    using Cthangover.Mods.Rpg.Validation;
+
     /// <summary>Unapplied workspace values stay editable when they cannot be serialized or sent to rendering.</summary>
     public sealed class RpgPartDataCheckTests
     {
@@ -34,7 +34,7 @@ namespace Cthangover.Mods.Rpg.Tests
             ModAssert.Equal(0, RpgPartDataCheck.Check(parts).Count, "negative/fractional offsets are valid");
             part.Size[0] = float.NaN;
             var issue = RpgPartDataCheck.Check(parts)[0];
-            ModAssert.Equal("size", issue.Code, "nonfinite value is rejected before JSON serialization");
+            ModAssert.Equal(RpgDataRules.Size, issue.Code, "nonfinite value is rejected before JSON serialization");
             ModAssert.Equal("Parts[0].Size", issue.Field, "the exact unapplied field is retained");
             ModAssert.True(float.IsNaN(part.Size[0]), "the invalid input remains untouched for correction");
             part.Size[0] = 2;

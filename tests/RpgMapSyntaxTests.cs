@@ -1,9 +1,9 @@
-using System.Text.Json.Nodes;
-using Cthangover.Core.Mods.Testing;
-using Cthangover.Mods.Rpg.Validation;
-
 namespace Cthangover.Mods.Rpg.Tests
 {
+    using System.Text.Json.Nodes;
+    using Cthangover.Core.Mods.Testing;
+    using Cthangover.Mods.Rpg.Validation;
+
     /// <summary>Optional layers keep the existing empty-map contract while explicit malformed dimensions and rows stay visible.</summary>
     public sealed class RpgMapSyntaxTests
     {
@@ -20,7 +20,7 @@ namespace Cthangover.Mods.Rpg.Tests
             data["Ground"][2] = "...";
             var issues = RpgMapSyntax.Check(data);
             ModAssert.Equal(1, issues.Count, "only the malformed row is reported");
-            ModAssert.Equal("map_rows", issues[0].Code, "row rule is stable");
+            ModAssert.Equal(RpgDataRules.MapRows, issues[0].Code, "row rule is stable");
             ModAssert.Equal("Ground[2]", issues[0].Field, "the exact bad row is retained");
         }
 

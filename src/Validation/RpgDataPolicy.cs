@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Explicit policy after the clean map and object-catalog inventory. Unknown rules, optional providers and work budgets
     /// remain advisory; loading arbitrary invalid player data never silently relaxes the accepted authoring rules.
@@ -11,10 +11,7 @@ namespace Cthangover.Mods.Rpg.Validation
         /// <summary>Whether an audited structural rule prevents a new save or Apply; severity does not alter detection.</summary>
         public static bool Blocks(string code)
         {
-            return code is "quad_count" or "quad_number" or "quad_area" or "quad_affine"
-                or "vector" or "size" or "scale" or "crop" or "material" or "image" or "sheet"
-                or "part" or "duplicate_part" or "enum" or "map_size" or "map_rows"
-                or "reference" or "layer_form" or "json";
+            return RpgDataRules.Find(code)?.BlocksSave == true;
         }
 
         /// <summary>Returns the first actionable error without modifying findings or changing a document.</summary>

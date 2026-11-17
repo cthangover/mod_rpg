@@ -1,10 +1,10 @@
-using System;
-using System.Collections.Generic;
-using Cthangover.Core.Mods.Testing;
-using Cthangover.Mods.Rpg.Validation;
-
 namespace Cthangover.Mods.Rpg.Tests
 {
+    using System;
+    using System.Collections.Generic;
+    using Cthangover.Core.Mods.Testing;
+    using Cthangover.Mods.Rpg.Validation;
+
     /// <summary>World geometry is checked in all three axes, at fixed tolerances and without projection-dependent area tests.</summary>
     public sealed class RpgQuadCheckTests
     {
@@ -64,7 +64,7 @@ namespace Cthangover.Mods.Rpg.Tests
                 ModAssert.True(RpgQuadCheck.Problem(near) == null, "below threshold on axis " + axis);
                 var far = Quad(0, 1, 0);
                 far[2][axis] += 0.00002;
-                ModAssert.Equal("quad_affine", RpgQuadCheck.Problem(far), "above threshold on axis " + axis);
+                ModAssert.Equal(RpgDataRules.QuadAffine, RpgQuadCheck.Problem(far), "above threshold on axis " + axis);
                 foreach (var point in far)
                 {
                     for (var index = 0; index < 3; index++)
@@ -73,17 +73,17 @@ namespace Cthangover.Mods.Rpg.Tests
                     }
                 }
 
-                ModAssert.Equal("quad_affine", RpgQuadCheck.Problem(far), "large translation never increases tolerance");
+                ModAssert.Equal(RpgDataRules.QuadAffine, RpgQuadCheck.Problem(far), "large translation never increases tolerance");
             }
         }
 
         [ModTest("data_quad/malformed_nonfinite_and_degenerate_inputs")]
         static void Invalid(ModTestContext ctx)
         {
-            ModAssert.Equal("quad_count", RpgQuadCheck.Problem(null), "missing corners");
+            ModAssert.Equal(RpgDataRules.QuadCount, RpgQuadCheck.Problem(null), "missing corners");
             var shortQuad = Quad(0, 1, 0);
             shortQuad.RemoveAt(3);
-            ModAssert.Equal("quad_count", RpgQuadCheck.Problem(shortQuad), "three corners");
+            ModAssert.Equal(RpgDataRules.QuadCount, RpgQuadCheck.Problem(shortQuad), "three corners");
             shortQuad.Add(new double[]
             {
                 0,
@@ -96,14 +96,14 @@ namespace Cthangover.Mods.Rpg.Tests
                 0,
                 0,
             });
-            ModAssert.Equal("quad_count", RpgQuadCheck.Problem(shortQuad), "five corners");
+            ModAssert.Equal(RpgDataRules.QuadCount, RpgQuadCheck.Problem(shortQuad), "five corners");
             var malformed = Quad(0, 1, 0);
             malformed[0] = new double[]
             {
                 0,
                 0,
             };
-            ModAssert.Equal("quad_number", RpgQuadCheck.Problem(malformed), "two-dimensional corner is invalid");
+            ModAssert.Equal(RpgDataRules.QuadNumber, RpgQuadCheck.Problem(malformed), "two-dimensional corner is invalid");
             var numbers = new[]
             {
                 double.NaN,
@@ -114,10 +114,10 @@ namespace Cthangover.Mods.Rpg.Tests
             {
                 var bad = Quad(0, 1, 0);
                 bad[2][2] = number;
-                ModAssert.Equal("quad_number", RpgQuadCheck.Problem(bad), "nonfinite corner remains explicit");
+                ModAssert.Equal(RpgDataRules.QuadNumber, RpgQuadCheck.Problem(bad), "nonfinite corner remains explicit");
             }
 
-            ModAssert.Equal("quad_area", RpgQuadCheck.Problem(Quad(0, 0, 0)), "repeated corners have zero area");
+            ModAssert.Equal(RpgDataRules.QuadArea, RpgQuadCheck.Problem(Quad(0, 0, 0)), "repeated corners have zero area");
             var line = Quad(0, 1, 0);
             line[3] = new double[]
             {
@@ -125,10 +125,10 @@ namespace Cthangover.Mods.Rpg.Tests
                 0,
                 0,
             };
-            ModAssert.Equal("quad_area", RpgQuadCheck.Problem(line), "collinear basis has zero three-dimensional area");
+            ModAssert.Equal(RpgDataRules.QuadArea, RpgQuadCheck.Problem(line), "collinear basis has zero three-dimensional area");
             var trapezoid = Quad(0, 1, 0);
             trapezoid[2][0] = 2;
-            ModAssert.Equal("quad_affine", RpgQuadCheck.Problem(trapezoid), "trapezoid cannot use the affine renderer");
+            ModAssert.Equal(RpgDataRules.QuadAffine, RpgQuadCheck.Problem(trapezoid), "trapezoid cannot use the affine renderer");
         }
 
         [ModTest("data_quad/runtime_float_guard")]

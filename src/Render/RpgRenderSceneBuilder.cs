@@ -1,13 +1,13 @@
-using System;
-using System.Collections.Generic;
-using Cthangover.Core.Utils;
-using Cthangover.Mods.Rpg.Model;
-using Cthangover.Mods.Rpg.Validation;
-using Cthangover.Mods.TileRender;
-using Godot;
-
 namespace Cthangover.Mods.Rpg.Render
 {
+    using System;
+    using System.Collections.Generic;
+    using Cthangover.Core.Utils;
+    using Cthangover.Mods.Rpg.Model;
+    using Cthangover.Mods.Rpg.Validation;
+    using Cthangover.Mods.TileRender;
+    using Godot;
+
     /// <summary>
     /// Turns a model v2 map into the renderer-neutral <see cref = "TileRenderScene"/> (plan section 4,
     /// contract sections 4 and 8). The cost is linear in what is on the map, never
@@ -302,6 +302,7 @@ namespace Cthangover.Mods.Rpg.Render
                             Source = new Rect2(Vector2.Zero, texture.GetSize()), 
                             Bounds = new Rect2(x, y + 1 - height, 1, height), 
                             Anchor = new Vector2(x + 0.5f, y + 1), 
+                            VisibilityCell = new Vector2(x + 0.5f, y + 0.5f),
                             DrawOrder = TileDrawOrder.ByPosition, 
                             WorldQuad = quads[q], 
                             Only = q == 0 ? null : IsometricRenderer, 
@@ -431,6 +432,11 @@ namespace Cthangover.Mods.Rpg.Render
 
                     visual.Only = part.Only ?? IsometricRenderer;
                     break;
+            }
+
+            if (visual.Upright)
+            {
+                visual.VisibilityCell = origin + new Vector2(sprite.Width / 2f, sprite.Height - 0.5f);
             }
 
             if (part.SortOffset is { Length: >= 2 } offset)

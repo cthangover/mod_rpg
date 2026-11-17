@@ -1,12 +1,12 @@
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using Cthangover.Core.Mods.Testing;
-using Cthangover.Mods.Rpg.Validation;
-using Godot;
-
 namespace Cthangover.Mods.Rpg.Tests
 {
+    using System.Collections.Generic;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
+    using Cthangover.Core.Mods.Testing;
+    using Cthangover.Mods.Rpg.Validation;
+    using Godot;
+
     /// <summary>Authored shape, pixels and world units remain distinct; diagnostics never rewrite their source JSON.</summary>
     public sealed class RpgDataCheckTests
     {
@@ -39,9 +39,9 @@ namespace Cthangover.Mods.Rpg.Tests
             data["Parts"][0]["Size"] = new JsonArray(0, 1);
             var before = data.ToJsonString();
             var issues = RpgDataCheck.Object(data, "isometric", 128, Size);
-            ModAssert.True(Contains(issues, "vector", "Anchor"), "origin shape is named exactly");
-            ModAssert.True(Contains(issues, "crop", "Parts[0].Crop"), "overflow is checked in pixels");
-            ModAssert.True(Contains(issues, "size", "Parts[0].Size"), "zero world size is named exactly");
+            ModAssert.True(Contains(issues, RpgDataRules.Vector, "Anchor"), "origin shape is named exactly");
+            ModAssert.True(Contains(issues, RpgDataRules.Crop, "Parts[0].Crop"), "overflow is checked in pixels");
+            ModAssert.True(Contains(issues, RpgDataRules.Size, "Parts[0].Size"), "zero world size is named exactly");
             ModAssert.Equal(3, issues.Count, "one invalid part does not manufacture errors for unrelated fields");
             ModAssert.Equal(before, data.ToJsonString(), "failed validation does not normalize input");
         }
@@ -53,17 +53,17 @@ namespace Cthangover.Mods.Rpg.Tests
             ModAssert.Equal(0, RpgDataCheck.Object(surface, "topdown", 128, Size).Count, "matching square material");
             ModAssert.Equal(0, RpgDataCheck.Object(surface, "topdown", 0, Size).Count,
                 "an object without a map context accepts a square without inventing its PatchSize");
-            ModAssert.True(Contains(RpgDataCheck.Object(surface, "isometric", 512, Size), "material", "Surface.Image"),
+            ModAssert.True(Contains(RpgDataCheck.Object(surface, "isometric", 512, Size), RpgDataRules.Material, "Surface.Image"),
                 "material follows the map patch size rather than tile size");
             var data = JsonNode.Parse(Sprite).AsObject();
             data["Parts"][0]["Image"] = "missing";
-            ModAssert.True(Contains(RpgDataCheck.Object(data, "isometric", 128, Size), "image", "Parts[0].Image"),
+            ModAssert.True(Contains(RpgDataCheck.Object(data, "isometric", 128, Size), RpgDataRules.Image, "Parts[0].Image"),
                 "missing image is report data");
             data["Parts"][0]["Only"] = "isometric";
             ModAssert.Equal(0, RpgDataCheck.Object(data, "topdown", 128, Size).Count,
                 "the other projection does not request an unused picture");
             data["Parts"][0]["Only"] = "extra_projection";
-            ModAssert.True(Contains(RpgDataCheck.Object(data, "topdown", 128, Size), "projection", "Parts[0].Only"),
+            ModAssert.True(Contains(RpgDataCheck.Object(data, "topdown", 128, Size), RpgDataRules.Projection, "Parts[0].Only"),
                 "an additional provider is an explicit advisory finding");
         }
 
@@ -76,9 +76,9 @@ namespace Cthangover.Mods.Rpg.Tests
             var before = data.ToJsonString();
             var issues = RpgDataCheck.Authored(data, "isometric", 128, Size);
             ModAssert.Equal(3, issues.Count, "only present invalid fields are checked before normalization");
-            ModAssert.True(Contains(issues, "scale", "Scale"), "clamping cannot hide authored scale 101");
-            ModAssert.True(Contains(issues, "vector", "Variants[winter].Anchor"), "partial variant gets a qualified field");
-            ModAssert.True(Contains(issues, "size", "States[0].Parts[0].Size"), "partial state is not a complete object");
+            ModAssert.True(Contains(issues, RpgDataRules.Scale, "Scale"), "clamping cannot hide authored scale 101");
+            ModAssert.True(Contains(issues, RpgDataRules.Vector, "Variants[winter].Anchor"), "partial variant gets a qualified field");
+            ModAssert.True(Contains(issues, RpgDataRules.Size, "States[0].Parts[0].Size"), "partial state is not a complete object");
             ModAssert.Equal(before, data.ToJsonString(), "raw partial input remains untouched");
         }
 
@@ -87,7 +87,7 @@ namespace Cthangover.Mods.Rpg.Tests
         {
             var source = new RpgDataIssue
             {
-                Code = "crop",
+                Code = RpgDataRules.Crop,
                 Field = "Parts[wall].Crop",
                 Detail = "128×256",
                 Resource = "check/room",

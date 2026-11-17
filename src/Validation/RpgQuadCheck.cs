@@ -1,8 +1,8 @@
-using System;
-using System.Collections.Generic;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System;
+    using System.Collections.Generic;
+
     /// <summary>Checks affine world quads in double precision; translation never increases the permitted corner residual.</summary>
     public static class RpgQuadCheck
     {
@@ -17,21 +17,21 @@ namespace Cthangover.Mods.Rpg.Validation
         {
             if (points == null || points.Count != 4)
             {
-                return "quad_count";
+                return RpgDataRules.QuadCount;
             }
 
             foreach (var point in points)
             {
                 if (point == null || point.Length != 3)
                 {
-                    return "quad_number";
+                    return RpgDataRules.QuadNumber;
                 }
 
                 foreach (var number in point)
                 {
                     if (!double.IsFinite(number))
                     {
-                        return "quad_number";
+                        return RpgDataRules.QuadNumber;
                     }
                 }
             }
@@ -50,14 +50,14 @@ namespace Cthangover.Mods.Rpg.Validation
             if (!double.IsFinite(lengthA) || !double.IsFinite(lengthB) || !double.IsFinite(area)
                 || lengthA == 0 || lengthB == 0 || area == 0)
             {
-                return "quad_area";
+                return RpgDataRules.QuadArea;
             }
 
             var residual = Difference(Difference(points[2], points[1]), b);
             var tolerance = Math.Max(AbsoluteTolerance, RelativeTolerance * Math.Max(lengthA, lengthB));
             if (!double.IsFinite(Length(residual)) || Length(residual) > tolerance)
             {
-                return "quad_affine";
+                return RpgDataRules.QuadAffine;
             }
 
             return null;

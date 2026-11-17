@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using Cthangover.Mods.Rpg.Model;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System;
+    using System.Collections.Generic;
+    using Cthangover.Mods.Rpg.Model;
+
     /// <summary>Checks detached typed workspace values before serialization, including values that JSON cannot encode.</summary>
     public static class RpgPartDataCheck
     {
@@ -22,7 +22,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 var part = parts[i];
                 if (part == null)
                 {
-                    Add(issues, "part", path);
+                    Add(issues, RpgDataRules.Part, path);
                     continue;
                 }
 
@@ -31,7 +31,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 Vector(issues, part.SortOffset, path + ".SortOffset", false);
                 if (!Enum.IsDefined(part.Geometry))
                 {
-                    Add(issues, "enum", path + ".Geometry");
+                    Add(issues, RpgDataRules.Enum, path + ".Geometry");
                 }
 
                 if (part.Geometry == RpgPartGeometry.Quad)
@@ -73,7 +73,7 @@ namespace Cthangover.Mods.Rpg.Validation
                         {
                             if (!float.IsFinite(number))
                             {
-                                Add(issues, "quad_number", path + ".Points");
+                                Add(issues, RpgDataRules.QuadNumber, path + ".Points");
                                 break;
                             }
                         }
@@ -99,7 +99,7 @@ namespace Cthangover.Mods.Rpg.Validation
 
             if (!valid)
             {
-                Add(issues, positive ? "size" : "vector", path);
+                Add(issues, positive ? RpgDataRules.Size : RpgDataRules.Vector, path);
             }
         }
 

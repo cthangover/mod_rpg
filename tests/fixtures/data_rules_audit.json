@@ -1,0 +1,121 @@
+{
+  "Schema": 1,
+  "Accepted": "2026-11-16 F11 content inventory and policy",
+  "MapProjectionChecks": 48,
+  "ObjectProjectionChecks": 346,
+  "Findings": 0,
+  "Rules": {
+    "quad_count": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "quad_number": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "quad_area": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "quad_affine": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "vector": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "size": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "scale": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "crop": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "material": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "image": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "sheet": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "part": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "duplicate_part": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "enum": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "projection": {
+      "BlocksSave": false,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "map_size": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "map_rows": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "reference": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "layer_form": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "json": {
+      "BlocksSave": true,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "budget": {
+      "BlocksSave": false,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    },
+    "unknown": {
+      "BlocksSave": false,
+      "MapFindings": 0,
+      "ObjectFindings": 0
+    }
+  },
+  "ObjectReportSha256": "f3ac74636d6b5db723098b8383858f9df9ec55fe85a456bfa7a29344cfe19c1e",
+  "MapReportSha256": "36af6acccd2276b36c01343fa7f5e39f93e0bdf16c19823d503b153acdfffc5d"
+}

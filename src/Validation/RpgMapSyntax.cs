@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using System.Text.Json.Nodes;
-
 namespace Cthangover.Mods.Rpg.Validation
 {
+    using System.Collections.Generic;
+    using System.Text.Json.Nodes;
+
     /// <summary>Checks authored dimensions and explicit rows before a map DTO or its mutating save cleanup is used.</summary>
     public static class RpgMapSyntax
     {
@@ -23,7 +23,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 {
                     issues.Add(new RpgDataIssue
                     {
-                        Code = "map_size",
+                        Code = RpgDataRules.MapSize,
                         Field = field,
                         Detail = data?[field]?.ToString(),
                     });
@@ -54,7 +54,7 @@ namespace Cthangover.Mods.Rpg.Validation
                 {
                     issues.Add(new RpgDataIssue
                     {
-                        Code = "map_rows",
+                        Code = RpgDataRules.MapRows,
                         Field = layer,
                     });
                     continue;
@@ -66,7 +66,7 @@ namespace Cthangover.Mods.Rpg.Validation
                     {
                         issues.Add(new RpgDataIssue
                         {
-                            Code = "map_rows",
+                            Code = RpgDataRules.MapRows,
                             Field = layer + "[" + i + "]",
                         });
                     }
