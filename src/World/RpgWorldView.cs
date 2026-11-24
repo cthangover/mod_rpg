@@ -4,6 +4,7 @@ namespace Cthangover.Mods.Rpg
     using System.Collections.Generic;
     using Cthangover.Core.Events;
     using Cthangover.Core.Games;
+    using System.Linq;
     using Cthangover.Core.Utils;
     using Cthangover.Mods.Rpg.Model;
     using Cthangover.Mods.Rpg.Play;
@@ -131,14 +132,8 @@ namespace Cthangover.Mods.Rpg
             party = RpgPartyLook.Followers();
             Session.SetFollowerCount(party.Count);
             UpdateFrame(RpgInput.IsWalkBlockedThisFrame(GetParent()));
-            var id = ActiveGame.GetSetting("tile.renderer");
-            foreach (var arg in OS.GetCmdlineUserArgs())
-            {
-                if (arg.StartsWith("--tile-renderer=", StringComparison.Ordinal))
-                {
-                    id = arg.Substring(16);
-                }
-            }
+            var id = GameLaunchArgs.Current.GetAll<TileRendererParameter>().LastOrDefault()?.Value
+                ?? ActiveGame.GetSetting("tile.renderer");
 
             SetRenderer(id);
         }
