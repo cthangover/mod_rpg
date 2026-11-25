@@ -1,0 +1,6 @@
+{
+  "name": "RPG ground rewards",
+  "version": "0.1.0",
+  "description": "Keeps quest and battle reward overflow at the player's map cell.",
+  "sources": ["src/*.cs"]
+}

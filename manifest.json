@@ -23,6 +23,13 @@
   ],
   "integrations": [
     {
+      "id": "ground_rewards",
+      "path": "ground_rewards",
+      "with": [
+        "items_base"
+      ]
+    },
+    {
       "id": "battles",
       "with": [
         "turn_battle_base"
