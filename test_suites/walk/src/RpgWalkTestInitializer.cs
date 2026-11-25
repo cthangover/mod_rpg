@@ -1,5 +1,6 @@
 using System.Linq;
 using Cthangover.Core.Mods;
+using Cthangover.Core.Mods.Testing;
 using Cthangover.Core.Utils;
 using Godot;
 
@@ -32,7 +33,10 @@ namespace Cthangover.Mods.Rpg.Tests
                 .Select(a => a.Substring("--shots=".Length))
                 .FirstOrDefault();
             GameLogger.Log("TEST", $"RpgWalkTestInitializer: activating rpg_walk, shots={shots ?? "off"}");
-            ModRoot.AddDeferred(new RpgWalkTestDriver(shots));
+            var reviewRewards = args.Contains("--rpg-reward-review");
+            if (reviewRewards && shots == null)
+                shots = TestExecutionContextRuntime.Current?.ScreenshotsDirectory;
+            ModRoot.AddDeferred(new RpgWalkTestDriver(shots, reviewRewards));
         }
     }
 }

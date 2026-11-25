@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Cthangover.Core.Battle;
 using Cthangover.Core.Bootstrap;
 using Cthangover.Core.Characters;
@@ -49,10 +50,12 @@ namespace Cthangover.Mods.Rpg.Tests
         private const string PickupFlag = "rpg_village/rpg_walk_mushroom:taken";
         private const string Elder = "rpg_elder_house/elder";
         private const string Mushroom = "rpg_plus/mushroom";
+        private const string Coin = "money/coin";
 
         private static readonly Vector2I PickupCell = new(18, 14);
 
         private readonly string shotsDir;
+        private readonly bool reviewRewards;
         private readonly List<string> failures = new();
         private int passed;
         private int step;
@@ -61,9 +64,10 @@ namespace Cthangover.Mods.Rpg.Tests
         private double elapsed;
 
         /// <summary>Creates the driver; <paramref name="shotsDir"/> null disables screenshots.</summary>
-        public RpgWalkTestDriver(string shotsDir)
+        public RpgWalkTestDriver(string shotsDir, bool reviewRewards)
         {
             this.shotsDir = shotsDir;
+            this.reviewRewards = reviewRewards;
             Name = "RpgWalkTestDriver";
             var timer = new Timer { WaitTime = TickSeconds, Autostart = true };
             AddChild(timer);
@@ -259,6 +263,11 @@ namespace Cthangover.Mods.Rpg.Tests
                     Check(View.Find(Elder)?.Visible == true && View.Find(Elder).Current.Interact?.Scenario == "rpg_plus/woodland/elder",
                         "after a story flag the elder still stands and talks through the same scenario");
                     ScenarioCondition.SetFlag("rpg_wolf_dead", "0");
+                    if (reviewRewards)
+                    {
+                        StartRewardReview();
+                        return;
+                    }
                     Check(RpgBattleService.Start("rpg_slime", WinFlag), "a battle starts from the map");
                     Godot.Engine.TimeScale = 4;
                     Next();
@@ -274,6 +283,8 @@ namespace Cthangover.Mods.Rpg.Tests
                     if (GodotSceneService.IsTransitioning || ++waitTicks < BattleIntroTicks)
                         return;
                     Shot("battle");
+                    if (reviewRewards)
+                        battle.RecordEnemyDefeated(BattleRequest.Current.EnemiesCards.Single());
                     battle.ShowWinground();
                     Next();
                     return;
@@ -288,8 +299,14 @@ namespace Cthangover.Mods.Rpg.Tests
                     if (View?.Map?.ID != House || GodotSceneService.IsTransitioning)
                         return;
                     Godot.Engine.TimeScale = 1;
-                    Check(View.Player.Cell == new Vector2I(6, 7), $"the battle returns to the same cell, got {View.Player.Cell}");
+                    var returnCell = reviewRewards ? new Vector2I(6, 4) : new Vector2I(6, 7);
+                    Check(View.Player.Cell == returnCell, $"the battle returns to the same cell, got {View.Player.Cell}");
                     Check(GameData.Instance.Runtime.Flags.TryGetValue(WinFlag, out var won) && won == "1", "the win flag is set after the victory");
+                    if (reviewRewards)
+                    {
+                        CheckRewardPiles();
+                        Shot("reward_battle_return");
+                    }
                     // The menu's path: save in the game, go to the main menu, load.
                     SaveService.Save(SaveSlot);
                     GameSession.OpenMainMenu(GetTree());
@@ -304,6 +321,13 @@ namespace Cthangover.Mods.Rpg.Tests
                 case 23:
                     if (View?.Map?.ID != House || GodotSceneService.IsTransitioning || !WaitForReadyFrames(step, !View.Player.IsMoving))
                         return;
+                    if (reviewRewards)
+                    {
+                        CheckRewardPiles();
+                        RpgWorldHost.Teleport(new RpgTeleport { Map = Village, X = 15, Y = 9, Dir = RpgDirection.Up });
+                        step = 26;
+                        return;
+                    }
                     Shot("loaded");
                     var dialog = RpgInput.FindDialogBox();
                     Check(dialog != null && !dialog.IsRunning && !dialog.IsVisibleInTree(), $"no dialog box after loading (running={dialog?.IsRunning}, visible={dialog?.IsVisibleInTree()})");
@@ -319,7 +343,92 @@ namespace Cthangover.Mods.Rpg.Tests
                     SaveService.DeleteSave(SaveSlot);
                     Finish();
                     return;
+                case 25:
+                    if (AdvanceDialog())
+                        return;
+                    Check(Flag("rpg_ward_paid") == "1", "the elder's actual quest script awarded the coins");
+                    Check(Piles().Any(pile => pile.ItemId == Coin && pile.Count == 35), "35 quest coins remained on the floor");
+                    Check(ReloadedCoins() == 0, "no quest coins entered the full bag");
+                    Shot("reward_quest");
+                    Check(RpgBattleService.Start("rpg_slime", WinFlag), "the reward test starts the battle from the elder's house");
+                    Godot.Engine.TimeScale = 4;
+                    step = 19;
+                    waitTicks = 0;
+                    return;
+                case 26:
+                    if (View?.Map?.ID != Village || GodotSceneService.IsTransitioning || AdvanceDialog() || !WaitForReadyFrames(step, true))
+                        return;
+                    Check(RewardButtons().Length == 0, "reward markers stay in the original room");
+                    RpgWorldHost.Teleport(new RpgTeleport { Map = House, X = 6, Y = 4, Dir = RpgDirection.Up });
+                    Next();
+                    return;
+                case 27:
+                    if (View?.Map?.ID != House || GodotSceneService.IsTransitioning || AdvanceDialog() || !WaitForReadyFrames(step, true))
+                        return;
+                    var buttons = RewardButtons();
+                    Check(buttons.Length >= 3 && buttons.All(button => !button.Disabled), "quest and battle piles are visible and reachable");
+                    Check(((Inventory)Inventory).TryExchange(new() { [Mushroom] = 1 }, new(), out _), "freed a bag cell");
+                    Next();
+                    return;
+                case 28:
+                    if (!WaitForReadyFrames(step, true)) return;
+                    var rows = ((Inventory)Inventory).CaptureStorage().Stacks.Where(row => row.Container == "player").ToArray();
+                    Check(rows.Length == 0, $"the bag cell is still free before clicking ({string.Join(", ", rows.Select(row => row.ItemId))})");
+                    var coinMarker = RewardButtons().Single(button => button.Text.EndsWith("×35", System.StringComparison.Ordinal));
+                    Shot("reward_pickup");
+                    Click(coinMarker);
+                    Next();
+                    return;
+                case 29:
+                    Check(ReloadedCoins() == 35, "the player can click the quest pile after loading and returning");
+                    Check(Piles().All(pile => pile.Count != 35 || pile.ItemId != Coin), "the claimed quest pile left the ground");
+                    Check(Piles().Any(pile => pile.ItemId == "rpg_plus/resin"), "battle loot stays available after the quest pickup");
+                    SaveService.DeleteSave(SaveSlot);
+                    Finish();
+                    return;
             }
+        }
+
+        private void StartRewardReview()
+        {
+            var bag = new Inventory();
+            GameData.Instance.Runtime.Inventory = bag;
+            Check(bag.TryConfigureGrid("reward_review", new InventoryGridData { Width = 1, Height = 1 }, out _)
+                && bag.TryAdd(ItemFactory.Instance.Get(Mushroom), 1, out _), "the player has a full one-cell bag");
+            ScenarioCondition.SetFlag("rpg_ward_done", "1");
+            View.PlacePlayer(6, 4, RpgDirection.Up);
+            Tap(Key.E);
+            step = 25;
+        }
+
+        private void CheckRewardPiles()
+        {
+            var piles = Piles();
+            Check(piles.Any(pile => pile.ItemId == Coin && pile.Count == 35)
+                && piles.Any(pile => pile.ItemId == Coin && pile.Count is >= 2 and <= 4)
+                && piles.Any(pile => pile.ItemId == "rpg_plus/resin"), "both quest and actual victory loot are present");
+            Check(piles.All(pile => pile.Position.Domain == "rpg" && pile.Position.Location == House
+                && pile.Position.X == 6 && pile.Position.Y == 4), "all rewards remain in the quest and battle return cell");
+        }
+
+        private static InventoryGroundReward[] Piles() => ((Inventory)Inventory).CaptureStorage().GroundRewards.Values.ToArray();
+
+        private static int ReloadedCoins() => Inventory.CheckCount(Coin);
+
+        private Button[] RewardButtons() => GetTree().Root.GetNode<InventoryGroundRewardsView>("InventoryGroundRewards")
+            .GetChildren().OfType<Button>().Where(button => button.IsVisibleInTree()).ToArray();
+
+        private void Click(Button button)
+        {
+            var point = button.GetGlobalTransformWithCanvas() * (button.Size / 2);
+            var viewport = button.GetViewport();
+            using var motion = new InputEventMouseMotion { Position = point, GlobalPosition = point };
+            using var down = new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true };
+            using var up = new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left };
+            viewport.PushInput(motion);
+            Check(viewport.GuiGetHoveredControl() == button, "the native pointer reaches the quest marker");
+            viewport.PushInput(down);
+            viewport.PushInput(up);
         }
 
         /// <summary>
